@@ -24,6 +24,14 @@ module.exports = async function(sequelize){
         password: {
             type: DataTypes.STRING(65),
             allowNull: false
+        },
+        resetToken: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
+        resetTokenExpired: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     });
 }

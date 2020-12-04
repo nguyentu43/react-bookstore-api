@@ -7,7 +7,7 @@ module.exports = async function(sequelize){
             allowNull: false
         },
         price: {
-            type: DataTypes.BIGINT,
+            type: DataTypes.DOUBLE,
             allowNull: false,
             validate: {
                 min: 0
@@ -28,14 +28,30 @@ module.exports = async function(sequelize){
             type: DataTypes.STRING,
             unique: true
         },
-        coverImage: {
-            type: DataTypes.TEXT
-        },
-        previewImages: {
+        images: {
             type: DataTypes.TEXT,
+            defaultValue: "[]",
             get(){
-                return this.getDataValue("previewImages") ? this.getDataValue("previewImages").split(",") : []
+                return JSON.parse(this.get('images'));
+            },
+            set(v){
+                this.set('images', JSON.stringify(v));
             }
+        },
+        startDate: {
+            type: DataTypes.DATE
+        },
+        endDate: {
+            type: DataTypes.DATE
+        },
+        dealDiscount: {
+            type: DataTypes.FLOAT
+        },
+        dealQuantity: {
+            type: DataTypes.INTEGER
+        },
+        soldQuantity: {
+            type: DataTypes.INTEGER
         }
     });
 }

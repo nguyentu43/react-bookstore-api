@@ -9,11 +9,13 @@ const sequelize = require("./db");
 const resolvers = require("./graphql/resolvers")(sequelize);
 const schema = require("./graphql/schema");
 const verifyJwt = require("./utils/verify-jwt");
+const bodyParser = require("body-parser");
 
 app.use(cors());
 app.use(compression());
 app.use(helmet());
 app.use(morgan("combined"));
+app.use(bodyParser.json());
 
 app.use(verifyJwt);
 

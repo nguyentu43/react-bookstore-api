@@ -17,7 +17,11 @@ module.exports = async function(sequelize){
         },
         status: {
             type: DataTypes.STRING(255),
-            default: "Created"
+            default: "created"
+        },
+        paymentID: {
+            type: DataTypes.STRING(255),
+            allowNull: true
         }
     });
 };

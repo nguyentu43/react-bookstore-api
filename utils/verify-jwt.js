@@ -10,7 +10,7 @@ module.exports = function(req, res, next){
                 
             }
             catch(e){
-                console.log("error");
+                console.log("JWT token is invalid");
             }
             finally{
                 next();
