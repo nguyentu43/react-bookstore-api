@@ -9,6 +9,8 @@ const sequelize = require("./db");
 const resolvers = require("./graphql/resolvers")(sequelize);
 const schema = require("./graphql/schema");
 const verifyJwt = require("./utils/verify-jwt");
+const { applyMiddleware } = require("graphql-middleware");
+const permissions = require("./graphql/shield");
 const bodyParser = require("body-parser");
 
 app.use(cors());
@@ -17,15 +19,21 @@ app.use(helmet());
 app.use(morgan("combined"));
 app.use(bodyParser.json());
 
-app.use(verifyJwt);
+app.use(async function(req, res, next){
+    await verifyJwt(sequelize)(req, res, next);
+});
 
-const storageRouter = require("./utils/file-storage")(sequelize);
+const storageRouter = require("./utils/file-storage");
 app.use("/storages", storageRouter);
 
 app.post("/graphql", graphqlHTTP({
+    //schema: applyMiddleware(schema, permissions),
     schema,
     rootValue: resolvers,
     customFormatErrorFn(err){
+
+        console.log(err);
+
         if (!err.originalError) {
             return err;
         }

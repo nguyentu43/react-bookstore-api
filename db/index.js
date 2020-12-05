@@ -11,7 +11,8 @@ const models = [
     require("./models/cart.model"),
     require("./models/cart-item.model"),
     require("./models/order.model"),
-    require("./models/order-item.model")
+    require("./models/order-item.model"),
+    require("./models/format.model")
 ];
 
 for(const model of models){

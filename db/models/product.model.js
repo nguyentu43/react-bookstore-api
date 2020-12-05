@@ -32,10 +32,7 @@ module.exports = async function(sequelize){
             type: DataTypes.TEXT,
             defaultValue: "[]",
             get(){
-                return JSON.parse(this.get('images'));
-            },
-            set(v){
-                this.set('images', JSON.stringify(v));
+                return JSON.parse(this.getDataValue('images'));
             }
         },
         startDate: {

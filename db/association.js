@@ -1,7 +1,7 @@
 const SequelizeSlugify = require("sequelize-slugify");
 
 module.exports = async function(sequelize){
-    const { Product, Order, User, OrderItem, Cart, CartItem, Category, Author } = sequelize.models
+    const { Product, Order, User, OrderItem, Cart, CartItem, Category, Author, Format } = sequelize.models
 
     SequelizeSlugify.slugifyModel(Product, {
         source: [ "name" ]
@@ -13,7 +13,9 @@ module.exports = async function(sequelize){
     Product.belongsTo(Category);
     Product.belongsToMany(Author, { through: 'AuthorProduct' });
     Author.belongsToMany(Product, { through: 'AuthorProduct' });
-    Product.hasMany(Product, { as: 'RelatedProduct' });
+    Product.belongsToMany(Format, { through: 'FormatProduct' });
+    Format.belongsToMany(Product, { through: 'FormatProduct' });
+    Product.hasMany(Product, { as: 'relatedProduct' });
 
     User.hasMany(Order);
     Order.belongsTo(User);

@@ -11,7 +11,7 @@ module.exports = async function(sequelize){
             type: DataTypes.STRING(255),
             allowNull: false,
         },
-        totalPrice: {
+        total: {
             type: DataTypes.FLOAT,
             allowNull: false
         },

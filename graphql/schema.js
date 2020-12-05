@@ -27,17 +27,21 @@ const schema = buildSchema(`
         parent: Category
     }
 
+    type Format{
+        id: ID!
+        name: String
+    }
+
     type Product {
         id: ID!
         name: String!
         price: Float!
         discount: Float
         description: String
-        createdAt: String!
-        updatedAt: String!
         slug: String!
         images: [String]
         authors: [Author]
+        formats: [Format]
         category: Category
         relatedProducts: [Product]
         startDate: String
@@ -45,12 +49,15 @@ const schema = buildSchema(`
         dealDiscount: Float
         dealQuantity: Int
         soldQuantity: Int
+        createdAt: String!
+        updatedAt: String!
     }
 
     type ProductItem{
         id: ID!
         name: String!
         price: Float!
+        format: Format
         slug: String!
         discount: Float!
         quantity: Int!
@@ -83,10 +90,11 @@ const schema = buildSchema(`
     input ProductData{
         name: String!
         price: Float!
-        discount: Float!
+        discount: Float
         description: String
         images: String
         authors: [ID]
+        formats: [ID]
         category: ID
         relatedProducts: [ID]
         startDate: String
@@ -98,6 +106,7 @@ const schema = buildSchema(`
 
     input CartItemData{
         quantity: Int!
+        format: ID!
         id: ID!
     }
 
@@ -105,6 +114,7 @@ const schema = buildSchema(`
         quantity: Int!
         price: Float!
         discount: Float!
+        format: ID!
         id: ID!
     }
 
@@ -112,15 +122,16 @@ const schema = buildSchema(`
         name: String!
         address: String!
         status: String
-        totalPrice: Float!
+        total: Float!
         items: [OrderItemData]!
         paymentID: String
     }
 
-    type RootQuery {
+    type Query {
         login(email: String!, password: String!): String!
         getCategories: [Category]!
         getAuthors: [Author]!
+        getFormats: [Format]!
         getProduct(slug: String!): Product
         getProducts(search: String, offset: Int, limit: Int): [Product]!
         getPaymentCode(amount: Float!, currency: String): String!
@@ -131,30 +142,25 @@ const schema = buildSchema(`
         getDashboardData: String!
     }
 
-    type RootMutation{
+    type Mutation{
         register(input: UserData): String!
         createUser(input: UserData!): User!
         requestResetPassword(email: String!): String
         verifyTokenAndResetPassword(token: String!, password: String!): String
-        createAuthor(name: String): Author
-        updateAuthor(id: ID, name: String): Author
+        createAuthor(name: String, avatar: String, description: String): Author
+        updateAuthor(id: ID, name: String, avatar: String, description: String): Author
         removeAuthor(id: ID): Boolean
-        createCategory(name: String, parent: ID!): Category
-        updateCategory(id: ID, name: String): Category
+        createCategory(name: String, parentID: ID, icon: String): Category
+        updateCategory(id: ID, name: String, parentID: ID, icon: String): Category
         removeCategory(id: ID): Boolean
         createProduct(input: ProductData!): Product!
         updateProduct(id: ID!, input: ProductData!): Product!
-        deleteProduct(id: ID!): Boolean!
+        removeProduct(id: ID!): Boolean!
         addCartItem(input: CartItemData!): Cart!
         removeCartItem(productID: ID!): Cart!
         addOrder(input: OrderData!, userID: ID): Order!
         updateOrder(id: ID!, input: OrderData!): Order!
         removeOrder(id: ID!): Boolean!
-    }
-
-    schema {
-        query: RootQuery
-        mutation: RootMutation
     }
 `);
 
