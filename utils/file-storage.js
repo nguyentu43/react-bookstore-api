@@ -26,14 +26,14 @@ cloudinary.config({
 
 const router = require("express").Router();
 
-router.use(function (req, res, next) {
-  if (!(req.user && req.user.isAdmin)) {
-    res.status(404).json({ error: "Forbidden" });
-  }
-  else{
-    next();
-  }
-});
+// router.use(function (req, res, next) {
+//   if (!(req.user && req.user.isAdmin)) {
+//     res.status(404).json({ error: "Forbidden" });
+//   }
+//   else{
+//     next();
+//   }
+// });
 
 router.get("/", function (req, res) {
   const next_cursor = req.query.next_cursor;

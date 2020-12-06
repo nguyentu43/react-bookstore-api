@@ -27,11 +27,6 @@ const schema = buildSchema(`
         parent: Category
     }
 
-    type Format{
-        id: ID!
-        name: String
-    }
-
     type Product {
         id: ID!
         name: String!
@@ -41,7 +36,6 @@ const schema = buildSchema(`
         slug: String!
         images: [String]
         authors: [Author]
-        formats: [Format]
         category: Category
         relatedProducts: [Product]
         startDate: String
@@ -57,7 +51,6 @@ const schema = buildSchema(`
         id: ID!
         name: String!
         price: Float!
-        format: Format
         slug: String!
         discount: Float!
         quantity: Int!
@@ -94,7 +87,6 @@ const schema = buildSchema(`
         description: String
         images: String
         authors: [ID]
-        formats: [ID]
         category: ID
         relatedProducts: [ID]
         startDate: String
@@ -106,7 +98,6 @@ const schema = buildSchema(`
 
     input CartItemData{
         quantity: Int!
-        format: ID!
         id: ID!
     }
 
@@ -114,7 +105,6 @@ const schema = buildSchema(`
         quantity: Int!
         price: Float!
         discount: Float!
-        format: ID!
         id: ID!
     }
 
@@ -127,11 +117,22 @@ const schema = buildSchema(`
         paymentID: String
     }
 
+    input AuthorData{
+        name: String
+        avatar: String
+        description: String
+    }
+
+    input CategoryData{
+        name: String
+        parentID: ID
+        icon: String
+    }
+
     type Query {
         login(email: String!, password: String!): String!
         getCategories: [Category]!
         getAuthors: [Author]!
-        getFormats: [Format]!
         getProduct(slug: String!): Product
         getProducts(search: String, offset: Int, limit: Int): [Product]!
         getPaymentCode(amount: Float!, currency: String): String!
@@ -147,11 +148,11 @@ const schema = buildSchema(`
         createUser(input: UserData!): User!
         requestResetPassword(email: String!): String
         verifyTokenAndResetPassword(token: String!, password: String!): String
-        createAuthor(name: String, avatar: String, description: String): Author
-        updateAuthor(id: ID, name: String, avatar: String, description: String): Author
+        createAuthor(input: AuthorData): Author
+        updateAuthor(id: ID, input: AuthorData): Author
         removeAuthor(id: ID): Boolean
-        createCategory(name: String, parentID: ID, icon: String): Category
-        updateCategory(id: ID, name: String, parentID: ID, icon: String): Category
+        createCategory(input: CategoryData): Category
+        updateCategory(id: ID, input: CategoryData): Category
         removeCategory(id: ID): Boolean
         createProduct(input: ProductData!): Product!
         updateProduct(id: ID!, input: ProductData!): Product!

@@ -17,7 +17,7 @@ const moment = require("moment");
 const { isArray } = require("lodash");
 
 module.exports = function (sequelize) {
-  const { User, Product, Order, Category, Author, Format } = sequelize.models;
+  const { User, Product, Order, Category, Author } = sequelize.models;
 
   return {
     async login({ email, password }) {
@@ -73,13 +73,13 @@ module.exports = function (sequelize) {
       });
       return categories.map((category) => category.toJSON());
     },
-    async createCategory({ name, parentID, icon }) {
-      const category = await Category.create({ name, parentID, icon });
+    async createCategory({ input }) {
+      const category = await Category.create({ ...input });
       return category.toJSON();
     },
-    async updateCategory({ id, name, parentID, icon }) {
+    async updateCategory({ id, input }) {
       const result = await Category.update(
-        { name, parentID, icon },
+        { ...input },
         { where: { id } }
       );
       if (result) {
@@ -100,20 +100,17 @@ module.exports = function (sequelize) {
         sendError("Category is not found", 404);
       }
     },
-    async getFormats(){
-      return (await Format.findAll({})).map(format=>(format.toJSON()));
-    },
     async getAuthors() {
       const authors = await Author.findAll({});
       return authors.map((author) => author.toJSON());
     },
-    async createAuthor({ name, avatar, description }) {
-      const author = await Author.create({ name, avatar, description });
+    async createAuthor({ input }) {
+      const author = await Author.create({ ...input });
       return author.toJSON();
     },
-    async updateAuthor({ id, name, avatar, description }) {
+    async updateAuthor({ id, input }) {
       const result = await Author.update(
-        { name, avatar, description },
+        { ...input },
         { where: { id } }
       );
       if (result) {
@@ -342,7 +339,6 @@ module.exports = function (sequelize) {
           through: {
             quantity: item.quantity,
             price: item.price,
-            format: item.format,
             discount: item.discount,
           },
         });
@@ -359,7 +355,6 @@ module.exports = function (sequelize) {
             through: {
               quantity: item.quantity,
               price: item.price,
-              format: item.format,
               discount: item.discount,
             },
           });

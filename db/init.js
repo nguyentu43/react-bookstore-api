@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 
 module.exports = async function(sequelize){
 
-    const { User, Product, Author, Category, Format } = sequelize.models;
+    const { User, Product, Author, Category } = sequelize.models;
 
     await sequelize.sync({ force: true });
 
