@@ -7,9 +7,6 @@ const schema = buildSchema(`
         name: String!
         email: String!
         isAdmin: Boolean!
-        whistlist: [Product]
-        createAt: String
-        updatedAt: String
     }
 
     type Author{
@@ -34,15 +31,9 @@ const schema = buildSchema(`
         discount: Float
         description: String
         slug: String!
-        images: [String]
+        images: [Image]
         authors: [Author]
         category: Category
-        relatedProducts: [Product]
-        startDate: String
-        endDate: String
-        dealDiscount: Float
-        dealQuantity: Int
-        soldQuantity: Int
         createdAt: String!
         updatedAt: String!
     }
@@ -73,6 +64,18 @@ const schema = buildSchema(`
     type Cart{
         items: [ProductItem]!
     }
+    
+    scalar Upload
+
+    type Image{
+        public_id: String!
+        secure_url: String!
+    }
+
+    type ImageList{
+        list: [Image]
+        next_cursor: String
+    }
 
     input UserData{
         name: String!
@@ -89,11 +92,10 @@ const schema = buildSchema(`
         authors: [ID]
         category: ID
         relatedProducts: [ID]
-        startDate: String
+        beginDate: String
         endDate: String
         dealDiscount: Float
         dealQuantity: Int
-        soldQuantity: Int
     }
 
     input CartItemData{
@@ -111,8 +113,6 @@ const schema = buildSchema(`
     input OrderData{
         name: String!
         address: String!
-        status: String
-        total: Float!
         items: [OrderItemData]!
         paymentID: String
     }
@@ -131,6 +131,7 @@ const schema = buildSchema(`
 
     type Query {
         login(email: String!, password: String!): String!
+        getImages(cursor: String): ImageList
         getCategories: [Category]!
         getAuthors: [Author]!
         getProduct(slug: String!): Product
@@ -139,6 +140,7 @@ const schema = buildSchema(`
         getUserInfo: User!
         getUserCart: Cart!
         getUserOrders: [Order]!
+        getWishlist: [Product]
         getOrders: [Order]!
         getDashboardData: String!
     }
@@ -162,6 +164,10 @@ const schema = buildSchema(`
         addOrder(input: OrderData!, userID: ID): Order!
         updateOrder(id: ID!, input: OrderData!): Order!
         removeOrder(id: ID!): Boolean!
+        uploadImages(files: [Upload!]): [Image]
+        removeImages(public_ids: [String!]): Boolean
+        addWishlist(id: ID): Boolean
+        removeWishlist(id: ID): Boolean
     }
 `);
 

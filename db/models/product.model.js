@@ -35,7 +35,7 @@ module.exports = async function(sequelize){
                 return JSON.parse(this.getDataValue('images'));
             }
         },
-        startDate: {
+        beginDate: {
             type: DataTypes.DATE
         },
         endDate: {

@@ -15,11 +15,86 @@ const { sendMail } = require("../utils/mail");
 const cryptoRandomString = require("crypto-random-string");
 const moment = require("moment");
 const { isArray } = require("lodash");
+const { GraphQLUpload } = require("graphql-upload");
+const { request } = require("express");
 
 module.exports = function (sequelize) {
   const { User, Product, Order, Category, Author } = sequelize.models;
 
   return {
+    Upload: GraphQLUpload,
+    async getImages({ next_cursor }) {
+      const max_results = 10;
+      try {
+        const result = await cloudinary.api.resources({
+          type: "upload",
+          next_cursor,
+          max_results,
+          prefix: "store/",
+        });
+
+        return {
+          list: result.resources.map(({ public_id, secure_url }) => ({
+            public_id,
+            secure_url,
+          })),
+          next_cursor: result.next_cursor,
+        };
+      } catch (error) {
+        sendError(error.code, 403);
+      }
+    },
+    async uploadImages({ files: uploadFiles }) {
+      function handleUpload(readStream) {
+        return new Promise(function (resolve, reject) {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { format: "jpg", folder: "store" },
+            function (error, result) {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          readStream.pipe(uploadStream);
+        });
+      }
+
+      const uploadPromises = [];
+      for (const { promise } of uploadFiles) {
+        const file = await promise;
+        if (
+          ["image/png", "image/jpeg", "image/gif"].indexOf(file.mimetype) === -1
+        )
+          return;
+        uploadPromises.push(handleUpload(file.createReadStream()));
+      }
+
+      try {
+        const results = await Promise.all(uploadPromises);
+        return results.map(({ public_id, secure_url }) => ({
+          public_id,
+          secure_url,
+        }));
+      } catch (error) {
+        console.log(error);
+        sendError("Upload Error", 500);
+      }
+    },
+    async removeImages({ public_ids }) {
+      const deletePromises = [];
+      for (const item of public_ids) {
+        deletePromises.push(cloudinary.uploader.destroy(item));
+      }
+
+      try {
+        const results = await Promise.all(deletePromises);
+        return true;
+      } catch (err) {
+        sendError("Delete Error", 500);
+      }
+    },
     async login({ email, password }) {
       const user = await User.findOne({ where: { email } });
       if (user) {
@@ -69,7 +144,7 @@ module.exports = function (sequelize) {
     },
     async getCategories({ name }) {
       const categories = await Category.findAll({
-        include: {all: true, nested: true},
+        include: { all: true, nested: true },
       });
       return categories.map((category) => category.toJSON());
     },
@@ -78,14 +153,11 @@ module.exports = function (sequelize) {
       return category.toJSON();
     },
     async updateCategory({ id, input }) {
-      const result = await Category.update(
-        { ...input },
-        { where: { id } }
-      );
+      const result = await Category.update({ ...input }, { where: { id } });
       if (result) {
         return (
           await Category.findByPk(id, {
-            include: {all: true, nested: true},
+            include: { all: true, nested: true },
           })
         ).toJSON();
       } else {
@@ -109,10 +181,7 @@ module.exports = function (sequelize) {
       return author.toJSON();
     },
     async updateAuthor({ id, input }) {
-      const result = await Author.update(
-        { ...input },
-        { where: { id } }
-      );
+      const result = await Author.update({ ...input }, { where: { id } });
       if (result) {
         return (await Author.findByPk(id)).toJSON();
       } else {
@@ -277,6 +346,16 @@ module.exports = function (sequelize) {
         isAdmin: currentUser.isAdmin,
         email: currentUser.email,
       };
+    },
+    async getWishlist({}, req){
+      const currentUser = req.user;
+      return await currentUser.getProducts();
+    },
+    async addWishlist({id}, req){
+      return await req.user.addProduct(id);
+    },
+    async removeWishlist({id}, req){
+      return await req.user.removeProduct(id);
     },
     async addCartItem({ id, ...rest }, req) {
       const currentUser = req.user;

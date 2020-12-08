@@ -13,13 +13,12 @@ module.exports = async function(sequelize){
     Product.belongsTo(Category);
     Product.belongsToMany(Author, { through: 'AuthorProduct' });
     Author.belongsToMany(Product, { through: 'AuthorProduct' });
-    Product.hasMany(Product, { as: 'relatedProduct' });
 
     User.hasMany(Order);
     Order.belongsTo(User);
 
-    Product.belongsToMany(User, { through: 'Whistlist' });
-    User.belongsToMany(Product, { through: 'Whistlist' });
+    Product.belongsToMany(User, { through: 'Wishlist' });
+    User.belongsToMany(Product, { through: 'Wishlist' });
 
 
     Product.belongsToMany(Order, { through: OrderItem });
