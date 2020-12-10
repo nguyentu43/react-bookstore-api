@@ -21,21 +21,26 @@ const { request } = require("express");
 module.exports = function (sequelize) {
   const { User, Product, Order, Category, Author } = sequelize.models;
 
-  function cartToJSON(items){
-    return items.map(item => ({
+  function cartToJSON(items) {
+    return items.map((item) => ({
       ...item.toJSON(),
-      images: item.images.map(image => cloudinary.url(image, { secure: true })),
-      quantity: item.CartItem.quantity
+      images: item.images.map((image) =>
+        cloudinary.url(image, { secure: true })
+      ),
+      quantity: item.CartItem.quantity,
     }));
   }
 
-  function productToJSON(product){
+  function productToJSON(product) {
     return {
       ...product.toJSON(),
       category: product.Category.toJSON(),
-      images: product.images.map(image => ({ public_id: image, secure_url: cloudinary.url(image, { secure: true }) })),
-      authors: product.Authors.map(a => a.toJSON())
-    }
+      images: product.images.map((image) => ({
+        public_id: image,
+        secure_url: cloudinary.url(image, { secure: true }),
+      })),
+      authors: product.Authors.map((a) => a.toJSON()),
+    };
   }
 
   return {
@@ -159,9 +164,9 @@ module.exports = function (sequelize) {
       );
       return token;
     },
-    async getCategories({ name }) {
+    async getCategories() {
       const categories = await Category.findAll({
-        include: [{all: true, nested: true}],
+        include: [{ all: true, nested: true }],
       });
       return categories.map((category) => category.toJSON());
     },
@@ -190,8 +195,12 @@ module.exports = function (sequelize) {
       }
     },
     async getAuthors() {
-      const authors = await Author.findAll({});
-      return authors.map((author) => author.toJSON());
+      const authors = await Author.findAll({ include: [{ model: Product }] });
+      return authors.map((author) => ({
+        ...author.toJSON(),
+        avatar: cloudinary.url(author.avatar, { secure: true }),
+        books: author.Products.length,
+      }));
     },
     async createAuthor({ input }) {
       const author = await Author.create({ ...input });
@@ -225,94 +234,92 @@ module.exports = function (sequelize) {
       }
     },
     async getProducts({ search = "", offset, limit }) {
-      const products = await Product.findAll(
-        {},
-        { include: [Author, Category, "relatedProduct"] }
-      );
-      return products.map((product) => product.toJSON());
+      const params = search.split("&");
+      let searchParam = "";
+      const bindParams = [];
+      let orderSQL = 'order by "Products"."createdAt" desc';
+      let whereSQL = "";
 
-      // const params = search.split("&");
-      // let searchParam = "";
-      // let attrParams = [];
-      // let orderSQL = 'order by "Products"."createdAt" desc';
-      // let paramSQL = "";
+      for (const param of params) {
+        const sp = param.split("=");
+        switch (sp[0]) {
+          case "order":
+            switch (Number(sp[1])) {
+              case 0:
+                orderSQL =
+                  'group by "Products".id order by coalesce(sum("OrderItems".quantity), 0) desc';
+                break;
+              case 1:
+                orderSQL = 'order by "Products"."createdAt" desc';
+                break;
+              case 2:
+                orderSQL =
+                  'order by "Products".price * (1 - "Products".discount) desc';
+                break;
+              case 3:
+                orderSQL =
+                  'order by "Products".price * (1 - "Products".discount) asc';
+                break;
+              case 4:
+                orderSQL = 'order by "Products".discount desc';
+                break;
+            }
+            break;
+          case "keyword":
+            searchParam = sp[1];
+            break;
+          case "category":
+            whereSQL +=
+              ' and ("Products"."CategoryId" = ? or "Categories"."parentID" = ?)';
+            bindParams.splice(0, 0, sp[1], sp[1]);
+            break;
+          case "author":
+            whereSQL += ' and "AuthorProduct"."AuthorId" = ?';
+            bindParams.push(sp[1]);
+            break;
+          case "range":
+            const range = sp[1].split("-");
+            whereSQL +=
+              ' and ("Products".price between ? and ? or "Products".price * (1 - "Products".discount) between ? and ?)';
+            bindParams.push(range[0]);
+            bindParams.push(range[1]);
+            bindParams.push(range[0]);
+            bindParams.push(range[1]);
+            break;
+          default:
+            break;
+        }
+      }
 
-      // for (const param of params) {
-      //   const sp = param.split("=");
-      //   switch (sp[0]) {
-      //     case "order":
-      //       switch (Number(sp[1])) {
-      //         case 0:
-      //           orderSQL =
-      //             'group by "Products".id order by coalesce(sum("OrderItems".quantity), 0) desc';
-      //           break;
-      //         case 1:
-      //           orderSQL = 'order by "Products"."createdAt" desc';
-      //           break;
-      //         case 2:
-      //           orderSQL =
-      //             'order by "Products".price * (1 - "Products".discount) desc';
-      //           break;
-      //         case 3:
-      //           orderSQL =
-      //             'order by "Products".price * (1 - "Products".discount) asc';
-      //           break;
-      //       }
-      //       break;
-      //     case "search":
-      //       searchParam = sp[1];
-      //       break;
-      //     case "attr":
-      //       const [id, value] = sp[1].split("$$");
-      //       attrParams = attrParams.concat([Number(id), value]);
-      //       if (paramSQL === "") {
-      //         paramSQL =
-      //           '("ProductAttributeValues"."ProductAttributeId" = ? and "ProductAttributeValues".value = ?)';
-      //       } else {
-      //         paramSQL +=
-      //           ' or ("ProductAttributeValues"."ProductAttributeId" = ? and "ProductAttributeValues".value = ?)';
-      //       }
-      //       break;
-      //     default:
-      //       break;
-      //   }
-      // }
+      searchParam = "%" + searchParam.toUpperCase() + "%";
 
-      // searchParam = "%" + searchParam.toUpperCase() + "%";
+      let sql = `select distinct "Products".* ${
+        orderSQL.includes("group by")
+          ? ', coalesce(sum("OrderItems".quantity), 0)'
+          : ""
+      } from "Products" left join "Categories" on "Categories"."id" = "Products"."CategoryId"  join "AuthorProduct" on "AuthorProduct"."ProductId" = "Products".id left join "OrderItems" on "Products".id = "OrderItems"."ProductId" where upper("Products".name) like ? ${whereSQL} ${orderSQL}`;
 
-      // let sql = `select distinct "Products".* ${
-      //   orderSQL.includes("group by")
-      //     ? ', coalesce(sum("OrderItems".quantity), 0)'
-      //     : ""
-      // } from "Products" left join "ProductAttributeValues" on "Products".id = "ProductAttributeValues"."ProductId" left join "OrderItems" on "Products".id = "OrderItems"."ProductId" where upper("Products".name) like ? ${
-      //   paramSQL ? "and (" + paramSQL + ")" : ""
-      // } ${orderSQL}`;
+      if (offset) {
+        sql += " offset ?";
+        bindParams.push(offset);
+      }
 
-      // if (offset) {
-      //   sql += " offset ?";
-      //   attrParams.push(offset);
-      // }
+      if (limit) {
+        sql += " limit ?";
+        bindParams.push(limit);
+      }
 
-      // if (limit) {
-      //   sql += " limit ?";
-      //   attrParams.push(limit);
-      // }
+      const ps = await sequelize.query(sql, {
+        model: Product,
+        mapToModel: true,
+        type: QueryTypes.SELECT,
+        replacements: [searchParam, ...bindParams],
+      });
 
-      // const ps = await sequelize.query(sql, {
-      //   model: Product,
-      //   mapToModel: true,
-      //   type: QueryTypes.SELECT,
-      //   replacements: [searchParam, ...attrParams],
-      // });
-
-      // return ps.map(async (p) => {
-      //   const p_json = p.toJSON();
-      //   p_json.ProductAttributes = await p.getProductAttributes({});
-      //   p_json.ProductAttributes = p_json.ProductAttributes.map((item) =>
-      //     item.toJSON()
-      //   );
-      //   return buildJSONProduct(p_json);
-      // });
+      return ps.map(async (p) => {
+        await p.reload({ include: [{ all: true, nested: true }] });
+        return productToJSON(p);
+      });
     },
     async createProduct({ input }) {
       const product = await Product.create(input);
@@ -375,7 +382,7 @@ module.exports = function (sequelize) {
     async removeWishlist({ id }, req) {
       return await req.user.removeProduct(id);
     },
-    async addCartItem({ input: { id, quantity }}, req) {
+    async addCartItem({ input: { id, quantity } }, req) {
       const currentUser = req.user;
       const userCart = await currentUser.getCart();
       const cartItems = await userCart.getProducts({

@@ -14,6 +14,7 @@ const schema = buildSchema(`
         name: String!
         avatar: String
         description: String
+        books: Int
     }
 
     type Category{
