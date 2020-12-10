@@ -34,21 +34,6 @@ module.exports = async function(sequelize){
             get(){
                 return JSON.parse(this.getDataValue('images'));
             }
-        },
-        beginDate: {
-            type: DataTypes.DATE
-        },
-        endDate: {
-            type: DataTypes.DATE
-        },
-        dealDiscount: {
-            type: DataTypes.FLOAT
-        },
-        dealQuantity: {
-            type: DataTypes.INTEGER
-        },
-        soldQuantity: {
-            type: DataTypes.INTEGER
         }
     });
 }

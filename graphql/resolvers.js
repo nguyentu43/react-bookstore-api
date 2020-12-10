@@ -21,6 +21,23 @@ const { request } = require("express");
 module.exports = function (sequelize) {
   const { User, Product, Order, Category, Author } = sequelize.models;
 
+  function cartToJSON(items){
+    return items.map(item => ({
+      ...item.toJSON(),
+      images: item.images.map(image => cloudinary.url(image, { secure: true })),
+      quantity: item.CartItem.quantity
+    }));
+  }
+
+  function productToJSON(product){
+    return {
+      ...product.toJSON(),
+      category: product.Category.toJSON(),
+      images: product.images.map(image => ({ public_id: image, secure_url: cloudinary.url(image, { secure: true }) })),
+      authors: product.Authors.map(a => a.toJSON())
+    }
+  }
+
   return {
     Upload: GraphQLUpload,
     async getImages({ next_cursor }) {
@@ -144,7 +161,7 @@ module.exports = function (sequelize) {
     },
     async getCategories({ name }) {
       const categories = await Category.findAll({
-        include: { all: true, nested: true },
+        include: [{all: true, nested: true}],
       });
       return categories.map((category) => category.toJSON());
     },
@@ -202,7 +219,7 @@ module.exports = function (sequelize) {
         include: { all: true, nested: true },
       });
       if (p) {
-        return p.toJSON();
+        return productToJSON(p);
       } else {
         sendError("Product is not found", 404);
       }
@@ -336,7 +353,8 @@ module.exports = function (sequelize) {
     async getUserCart({}, req) {
       const currentUser = req.user;
       const userCart = await currentUser.getCart();
-      return await buildJSONCart(userCart);
+      const items = await userCart.getProducts();
+      return cartToJSON(items);
     },
     async getUserInfo({}, req) {
       const currentUser = req.user;
@@ -347,17 +365,17 @@ module.exports = function (sequelize) {
         email: currentUser.email,
       };
     },
-    async getWishlist({}, req){
+    async getWishlist({}, req) {
       const currentUser = req.user;
       return await currentUser.getProducts();
     },
-    async addWishlist({id}, req){
+    async addWishlist({ id }, req) {
       return await req.user.addProduct(id);
     },
-    async removeWishlist({id}, req){
+    async removeWishlist({ id }, req) {
       return await req.user.removeProduct(id);
     },
-    async addCartItem({ id, ...rest }, req) {
+    async addCartItem({ input: { id, quantity }}, req) {
       const currentUser = req.user;
       const userCart = await currentUser.getCart();
       const cartItems = await userCart.getProducts({
@@ -365,14 +383,14 @@ module.exports = function (sequelize) {
       });
 
       if (cartItems.length === 1) {
-        cartItems[0].CartItem.update(rest);
+        await cartItems[0].CartItem.update({ quantity });
       } else {
-        await userCart.addProduct(input.id, {
-          through: { rest },
+        await userCart.addProduct(id, {
+          through: { quantity },
         });
       }
 
-      return userCart.toJSON();
+      return cartToJSON(await userCart.getProducts());
     },
     async removeCartItem({ productID }, req) {
       const currentUser = req.user;
@@ -384,7 +402,7 @@ module.exports = function (sequelize) {
         await cartItems[0].CartItem.destroy();
       }
 
-      return userCart.toJSON();
+      return cartToJSON(await userCart.getProducts());
     },
     async getUserOrders({}, req) {
       const currentUser = await req.user;
@@ -396,7 +414,18 @@ module.exports = function (sequelize) {
     async getOrders() {
       const orders = await Order.findAll({ include: [Product, User] });
       return orders.map((order) => {
-        return order.toJSON();
+        const user = order.User.toJSON();
+        const items = order.Products.map((product) => {
+          return {
+            ...product.toJSON(),
+            ...product.OrderItem.toJSON(),
+          };
+        });
+        return {
+          ...order.toJSON(),
+          user,
+          items,
+        };
       });
     },
     async addOrder({ userID, input }, req) {

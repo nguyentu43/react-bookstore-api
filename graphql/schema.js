@@ -58,11 +58,7 @@ const schema = buildSchema(`
         updatedAt: String!
         user: User
         paymentID: String
-        items: [ProductItem]!
-    }
-
-    type Cart{
-        items: [ProductItem]!
+        items: [ProductItem!]
     }
     
     scalar Upload
@@ -138,7 +134,7 @@ const schema = buildSchema(`
         getProducts(search: String, offset: Int, limit: Int): [Product]!
         getPaymentCode(amount: Float!, currency: String): String!
         getUserInfo: User!
-        getUserCart: Cart!
+        getUserCart: [ProductItem!]
         getUserOrders: [Order]!
         getWishlist: [Product]
         getOrders: [Order]!
@@ -159,8 +155,8 @@ const schema = buildSchema(`
         createProduct(input: ProductData!): Product!
         updateProduct(id: ID!, input: ProductData!): Product!
         removeProduct(id: ID!): Boolean!
-        addCartItem(input: CartItemData!): Cart!
-        removeCartItem(productID: ID!): Cart!
+        addCartItem(input: CartItemData!): [ProductItem!]
+        removeCartItem(productID: ID!): [ProductItem!]
         addOrder(input: OrderData!, userID: ID): Order!
         updateOrder(id: ID!, input: OrderData!): Order!
         removeOrder(id: ID!): Boolean!

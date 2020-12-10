@@ -19,6 +19,6 @@ for(const model of models){
 }
 
 require("./association")(sequelize);
-require("./init")(sequelize);
+//require("./init")(sequelize);
 
 module.exports = sequelize;
