@@ -60,6 +60,7 @@ module.exports = async function (sequelize) {
     name: "Customer 1",
     address: "HCM",
     status: "created",
+    phone: "23477888",
     total: 7,
   });
   await order.addProduct(1, {
@@ -70,6 +71,7 @@ module.exports = async function (sequelize) {
     name: "Customer 1",
     address: "HCM",
     status: "created",
+    phone: '1234568',
     total: 7,
   });
   await order2.addProduct(3, {

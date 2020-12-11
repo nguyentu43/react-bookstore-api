@@ -46,7 +46,7 @@ const schema = buildSchema(`
         slug: String!
         discount: Float!
         quantity: Int!
-        images: [String]
+        images: [Image]
     }
 
     type Order{
@@ -54,6 +54,7 @@ const schema = buildSchema(`
         name: String!
         status: String!
         address: String!
+        phone: String!
         total: Float!
         createdAt: String!
         updatedAt: String!
@@ -112,6 +113,8 @@ const schema = buildSchema(`
         address: String!
         items: [OrderItemData]!
         paymentID: String
+        phone: String!
+        total: Float!
     }
 
     input AuthorData{
@@ -133,7 +136,7 @@ const schema = buildSchema(`
         getAuthors: [Author]!
         getProduct(slug: String!): Product
         getProducts(search: String, offset: Int, limit: Int): [Product]!
-        getPaymentCode(amount: Float!, currency: String): String!
+        getPaymentCode(total: Float!, currency: String): String!
         getUserInfo: User!
         getUserCart: [ProductItem!]
         getUserOrders: [Order]!

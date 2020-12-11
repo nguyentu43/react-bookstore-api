@@ -24,9 +24,10 @@ module.exports = function (sequelize) {
   function cartToJSON(items) {
     return items.map((item) => ({
       ...item.toJSON(),
-      images: item.images.map((image) =>
-        cloudinary.url(image, { secure: true })
-      ),
+      images: item.images.map((public_id) => ({
+        secure_url: cloudinary.url(public_id, { secure: true }),
+        public_id,
+      })),
       quantity: item.CartItem.quantity,
     }));
   }
@@ -40,6 +41,25 @@ module.exports = function (sequelize) {
         secure_url: cloudinary.url(image, { secure: true }),
       })),
       authors: product.Authors.map((a) => a.toJSON()),
+    };
+  }
+
+  function orderToJSON(order) {
+    return {
+      ...order.toJSON(),
+      user: order.User.toJSON(),
+      items: order.Products.map(({ id, name, slug, images, OrderItem: { price, quantity, discount } }) => ({
+        id,
+        name,
+        slug,
+        price,
+        quantity,
+        discount,
+        images: images.map((public_id) => ({
+          public_id,
+          secure_url: cloudinary.url(public_id, { secure: true }),
+        })),
+      })),
     };
   }
 
@@ -195,11 +215,11 @@ module.exports = function (sequelize) {
       }
     },
     async getAuthors() {
-      const authors = await Author.findAll({ include: [{ model: Product }] });
-      return authors.map((author) => ({
+      const authors = await Author.findAll();
+      return authors.map(async (author) => ({
         ...author.toJSON(),
         avatar: cloudinary.url(author.avatar, { secure: true }),
-        books: author.Products.length,
+        books: await author.countProducts(),
       }));
     },
     async createAuthor({ input }) {
@@ -374,13 +394,20 @@ module.exports = function (sequelize) {
     },
     async getWishlist({}, req) {
       const currentUser = req.user;
-      return await currentUser.getProducts();
+      return (
+        await currentUser.getProducts({
+          include: [{ all: true, nested: true }],
+        })
+      ).map((p) => productToJSON(p));
     },
     async addWishlist({ id }, req) {
-      return await req.user.addProduct(id);
+      if (await req.user.hasProduct(Number(id))) {
+        return true;
+      }
+      return !!(await req.user.addProduct(id));
     },
     async removeWishlist({ id }, req) {
-      return await req.user.removeProduct(id);
+      return !!(await req.user.removeProduct(id));
     },
     async addCartItem({ input: { id, quantity } }, req) {
       const currentUser = req.user;
@@ -415,25 +442,12 @@ module.exports = function (sequelize) {
       const currentUser = await req.user;
       const orders = await currentUser.getOrders({ include: [Product, User] });
       return orders.map((order) => {
-        return order.toJSON();
+        return orderToJSON(order);
       });
     },
     async getOrders() {
       const orders = await Order.findAll({ include: [Product, User] });
-      return orders.map((order) => {
-        const user = order.User.toJSON();
-        const items = order.Products.map((product) => {
-          return {
-            ...product.toJSON(),
-            ...product.OrderItem.toJSON(),
-          };
-        });
-        return {
-          ...order.toJSON(),
-          user,
-          items,
-        };
-      });
+      return orders.map((order) => (orderToJSON(order)));
     },
     async addOrder({ userID, input }, req) {
       const currentUser = req.user;
@@ -458,7 +472,9 @@ module.exports = function (sequelize) {
           },
         });
       }
-      await order.toJSON();
+      return orderToJSON(
+        await order.reload({ include: [{ all: true, nested: true }] })
+      );
     },
     async updateOrder({ id, input }) {
       const order = await Order.findOne({ where: { id }, include: Product });
@@ -485,7 +501,7 @@ module.exports = function (sequelize) {
       }
       sendError("Can't delete this product", 403);
     },
-    async getPaymentCode({ amount, currency = "usd" }, req) {
+    async getPaymentCode({ total: amount, currency = "usd" }, req) {
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,
@@ -497,7 +513,7 @@ module.exports = function (sequelize) {
       const user = await User.findOne({ where: { email } });
       const randomString = cryptoRandomString({ length: 25 });
       const host = "http://localhost:3000";
-      const link = host + "/auth/reset-password/" + randomString;
+      const link = host + "/forgot-password?token=" + randomString;
       if (user) {
         await sendMail(
           user.email,

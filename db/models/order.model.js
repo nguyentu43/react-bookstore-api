@@ -15,6 +15,10 @@ module.exports = async function(sequelize){
             type: DataTypes.FLOAT,
             allowNull: false
         },
+        phone: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         status: {
             type: DataTypes.STRING(255),
             default: "created"
