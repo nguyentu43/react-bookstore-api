@@ -78,7 +78,7 @@ const schema = buildSchema(`
     input UserData{
         name: String!
         email: String!
-        password: String!
+        password: String
     }
 
     input ProductData{
@@ -89,11 +89,6 @@ const schema = buildSchema(`
         images: String
         authors: [ID]
         category: ID
-        relatedProducts: [ID]
-        beginDate: String
-        endDate: String
-        dealDiscount: Float
-        dealQuantity: Int
     }
 
     input CartItemData{
@@ -111,6 +106,7 @@ const schema = buildSchema(`
     input OrderData{
         name: String!
         address: String!
+        status: String
         items: [OrderItemData]!
         paymentID: String
         phone: String!
@@ -142,27 +138,31 @@ const schema = buildSchema(`
         getUserOrders: [Order]!
         getWishlist: [Product]
         getOrders: [Order]!
+        getUsers: [User]!
         getDashboardData: String!
     }
 
     type Mutation{
         register(input: UserData): String!
-        createUser(input: UserData!): User!
+        addUser(input: UserData!): User!
+        updateUser(id: ID!, input: UserData!): User!
+        removeUser(id: ID!): Boolean
         requestResetPassword(email: String!): String
         verifyTokenAndResetPassword(token: String!, password: String!): String
-        createAuthor(input: AuthorData): Author
+        addAuthor(input: AuthorData): Author
         updateAuthor(id: ID, input: AuthorData): Author
         removeAuthor(id: ID): Boolean
-        createCategory(input: CategoryData): Category
+        addCategory(input: CategoryData): Category
         updateCategory(id: ID, input: CategoryData): Category
         removeCategory(id: ID): Boolean
-        createProduct(input: ProductData!): Product!
+        addProduct(input: ProductData!): Product!
         updateProduct(id: ID!, input: ProductData!): Product!
         removeProduct(id: ID!): Boolean!
         addCartItem(input: CartItemData!): [ProductItem!]
         removeCartItem(productID: ID!): [ProductItem!]
+        checkout(input:OrderData!): Order!
         addOrder(input: OrderData!, userID: ID): Order!
-        updateOrder(id: ID!, input: OrderData!): Order!
+        updateOrder(id: ID!, input: OrderData!, userID: ID): Order!
         removeOrder(id: ID!): Boolean!
         uploadImages(files: [Upload!]): [Image]
         removeImages(public_ids: [String!]): Boolean

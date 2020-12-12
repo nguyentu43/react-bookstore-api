@@ -7,7 +7,8 @@ module.exports = async function(sequelize){
             allowNull: false
         },
         icon: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING,
+            defaultValue: 'FcBookmark'
         },
         parentID: {
             type: DataTypes.INTEGER,

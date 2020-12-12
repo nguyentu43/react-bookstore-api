@@ -47,19 +47,27 @@ module.exports = function (sequelize) {
   function orderToJSON(order) {
     return {
       ...order.toJSON(),
-      user: order.User.toJSON(),
-      items: order.Products.map(({ id, name, slug, images, OrderItem: { price, quantity, discount } }) => ({
-        id,
-        name,
-        slug,
-        price,
-        quantity,
-        discount,
-        images: images.map((public_id) => ({
-          public_id,
-          secure_url: cloudinary.url(public_id, { secure: true }),
-        })),
-      })),
+      user: order.User ? order.User.toJSON() : null,
+      items: order.Products.map(
+        ({
+          id,
+          name,
+          slug,
+          images,
+          OrderItem: { price, quantity, discount },
+        }) => ({
+          id,
+          name,
+          slug,
+          price,
+          quantity,
+          discount,
+          images: images.map((public_id) => ({
+            public_id,
+            secure_url: cloudinary.url(public_id, { secure: true }),
+          })),
+        })
+      ),
     };
   }
 
@@ -187,10 +195,11 @@ module.exports = function (sequelize) {
     async getCategories() {
       const categories = await Category.findAll({
         include: [{ all: true, nested: true }],
+        order: [["createdAt", "desc"]],
       });
       return categories.map((category) => category.toJSON());
     },
-    async createCategory({ input }) {
+    async addCategory({ input }) {
       const category = await Category.create({ ...input });
       return category.toJSON();
     },
@@ -215,14 +224,14 @@ module.exports = function (sequelize) {
       }
     },
     async getAuthors() {
-      const authors = await Author.findAll();
+      const authors = await Author.findAll({ order: [["createdAt", "desc"]] });
       return authors.map(async (author) => ({
         ...author.toJSON(),
         avatar: cloudinary.url(author.avatar, { secure: true }),
         books: await author.countProducts(),
       }));
     },
-    async createAuthor({ input }) {
+    async addAuthor({ input }) {
       const author = await Author.create({ ...input });
       return author.toJSON();
     },
@@ -341,7 +350,7 @@ module.exports = function (sequelize) {
         return productToJSON(p);
       });
     },
-    async createProduct({ input }) {
+    async addProduct({ input }) {
       const product = await Product.create(input);
       await product.setCategory(input.category);
       if (isArray(input.authors)) {
@@ -363,19 +372,45 @@ module.exports = function (sequelize) {
         sendError("A product is not found", 404);
       }
     },
-    async deleteProduct({ id }) {
+    async removeProduct({ id }) {
       const numsOfDelete = await Product.destroy({ where: { id } });
       if (numsOfDelete > 0) {
         return true;
       }
       sendError("Can't delete this product", 403);
     },
-    async createUser({ input }) {
-      const hash = await bcrypt.hash(input.password, 10);
-      input.password = hash;
+    async getUsers() {
+      const users = await User.findAll({ order: [["createdAt", "desc"]] });
+      return users.map((user) => user.toJSON());
+    },
+    async addUser({ input }) {
+      if (input.password) {
+        const hash = await bcrypt.hash(input.password, 10);
+        input.password = hash;
+      }
+
       const user = await User.create(input);
       user.createCart();
       return user.toJSON();
+    },
+    async updateUser({ id, input }) {
+      if (input.password) {
+        const hash = await bcrypt.hash(input.password, 10);
+        input.password = hash;
+      }
+      const result = await User.update(input, { where: { id } });
+      if (result > 0) {
+        const user = await User.findByPk(id);
+        return user.toJSON();
+      }
+      sendError("User is not found", 404);
+    },
+    async removeUser({ id }) {
+      const result = await User.destroy({ where: { id } });
+      if (result > 0) {
+        return true;
+      }
+      sendError("User is not found", 404);
     },
     async getUserCart({}, req) {
       const currentUser = req.user;
@@ -446,23 +481,19 @@ module.exports = function (sequelize) {
       });
     },
     async getOrders() {
-      const orders = await Order.findAll({ include: [Product, User] });
-      return orders.map((order) => (orderToJSON(order)));
+      const orders = await Order.findAll({ include: [Product, User], order: [['createdAt', 'desc']] });
+      return orders.map((order) => orderToJSON(order));
     },
-    async addOrder({ userID, input }, req) {
-      const currentUser = req.user;
-      let status = "created";
-      if (userID && userID != currentUser.id) {
-      } else {
-        userID = currentUser.id;
-        userCart = await currentUser.getCart();
-        for (const p of await userCart.getProducts()) {
-          await p.CartItem.destroy();
-        }
-        status = "charged";
-      }
-      const order = await Order.create({ ...input, status });
-      await order.setUser(Number(userID));
+    async checkout({ input }, req) {
+      const userID = req.user.id;
+      userCart = await req.user.getCart();
+      await userCart.setProducts([]);
+      input.status = "charged";
+      return this.addOrder({userID, input});
+    },
+    async addOrder({ userID, input }) {
+      const order = await Order.create(input);
+      if (userID) await order.setUser(Number(userID));
       for (const item of input.items) {
         await order.addProduct(item.id, {
           through: {
@@ -476,10 +507,11 @@ module.exports = function (sequelize) {
         await order.reload({ include: [{ all: true, nested: true }] })
       );
     },
-    async updateOrder({ id, input }) {
+    async updateOrder({ id, input, userID }) {
       const order = await Order.findOne({ where: { id }, include: Product });
       if (order) {
         await order.update(input);
+        await order.setUser(userID);
         await order.setProducts([]);
         for (const item of input.items) {
           await order.addProduct(item.id, {
@@ -490,7 +522,9 @@ module.exports = function (sequelize) {
             },
           });
         }
-        await order.toJSON();
+        return orderToJSON(
+          await order.reload({ include: [{ all: true, nested: true }] })
+        );
       }
       sendError("Can't update this order", 403);
     },
