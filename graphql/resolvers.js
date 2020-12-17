@@ -2,21 +2,18 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { QueryTypes, Op } = require("sequelize");
 const sendError = require("../utils/send-error");
-const stripe = require("stripe")(
-  "sk_test_51HqzdDEEA28cbsApIzrYfZm1kuH6k8t0pEFulUO5tBvf0ivq8YdtXVrJjzTxTiupPHmNxcdAoDaGmeJ3T7irTjj700ISoH1qy8"
-);
+const stripe = require("stripe")(process.env.STRIPE_SK);
 const cloudinary = require("cloudinary").v2;
 cloudinary.config({
-  api_key: "486491292758638",
-  api_secret: "V09vhr9OOqkmV4SDDEyM8lf3GDc",
-  cloud_name: "dqwgxcnh7",
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
 });
 const { sendMail } = require("../utils/mail");
 const cryptoRandomString = require("crypto-random-string");
 const moment = require("moment");
 const { isArray } = require("lodash");
 const { GraphQLUpload } = require("graphql-upload");
-const { request } = require("express");
 
 module.exports = function (sequelize) {
   const { User, Product, Order, Category, Author } = sequelize.models;
@@ -73,8 +70,8 @@ module.exports = function (sequelize) {
 
   return {
     Upload: GraphQLUpload,
-    async getImages({ next_cursor }) {
-      const max_results = 10;
+    async getImages({ cursor: next_cursor }) {
+      const max_results = 5;
       try {
         const result = await cloudinary.api.resources({
           type: "upload",
@@ -91,10 +88,10 @@ module.exports = function (sequelize) {
           next_cursor: result.next_cursor,
         };
       } catch (error) {
-        sendError(error.code, 403);
+        sendError(error.code, 400);
       }
     },
-    async uploadImages({ files: uploadFiles }) {
+    async uploadImages({ files: uploadFiles, urls }) {
       function handleUpload(readStream) {
         return new Promise(function (resolve, reject) {
           const uploadStream = cloudinary.uploader.upload_stream(
@@ -121,6 +118,10 @@ module.exports = function (sequelize) {
         uploadPromises.push(handleUpload(file.createReadStream()));
       }
 
+      for(const url of urls.split('\n')){
+        uploadPromises.push(cloudinary.uploader.upload(url, { folder: "store" }));
+      }
+
       try {
         const results = await Promise.all(uploadPromises);
         return results.map(({ public_id, secure_url }) => ({
@@ -129,7 +130,7 @@ module.exports = function (sequelize) {
         }));
       } catch (error) {
         console.log(error);
-        sendError("Upload Error", 500);
+        sendError("Upload Error", 400);
       }
     },
     async removeImages({ public_ids }) {
@@ -142,7 +143,7 @@ module.exports = function (sequelize) {
         const results = await Promise.all(deletePromises);
         return true;
       } catch (err) {
-        sendError("Delete Error", 500);
+        sendError("Delete Error", 400);
       }
     },
     async login({ email, password }) {
@@ -162,7 +163,7 @@ module.exports = function (sequelize) {
           return token;
         }
       }
-      sendError("User or password is not correct", 403);
+      sendError("A email/password is invalid", 400);
     },
     async register({ input }) {
       if (
@@ -172,11 +173,17 @@ module.exports = function (sequelize) {
           input.password.length >= 5
         )
       ) {
-        sendError("Don't meet requirements", 422);
+        sendError("Validator Error", 400);
       }
 
       const hash = await bcrypt.hash(input.password, 10);
       input.password = hash;
+
+      if(await User.findOne({where: {email: input.email}})){
+        sendError('A email is already registered', 400);
+        return;
+      }
+
       const user = await User.create(input);
       user.createCart();
 
@@ -240,7 +247,7 @@ module.exports = function (sequelize) {
       if (result) {
         return (await Author.findByPk(id)).toJSON();
       } else {
-        sendError("Author is not found", 404);
+        sendError("A author is not found", 404);
       }
     },
     async removeAuthor({ id }) {
@@ -248,7 +255,7 @@ module.exports = function (sequelize) {
       if (result) {
         return true;
       } else {
-        sendError("Author is not found", 404);
+        sendError("A author is not found", 404);
       }
     },
     async getProduct({ slug }) {
@@ -259,7 +266,7 @@ module.exports = function (sequelize) {
       if (p) {
         return productToJSON(p);
       } else {
-        sendError("Product is not found", 404);
+        sendError("A product is not found", 404);
       }
     },
     async getProducts({ search = "", offset, limit }) {
@@ -403,14 +410,14 @@ module.exports = function (sequelize) {
         const user = await User.findByPk(id);
         return user.toJSON();
       }
-      sendError("User is not found", 404);
+      sendError("A user is not found", 404);
     },
     async removeUser({ id }) {
       const result = await User.destroy({ where: { id } });
       if (result > 0) {
         return true;
       }
-      sendError("User is not found", 404);
+      sendError("A user is not found", 404);
     },
     async getUserCart({}, req) {
       const currentUser = req.user;
@@ -546,7 +553,7 @@ module.exports = function (sequelize) {
     async requestResetPassword({ email }) {
       const user = await User.findOne({ where: { email } });
       const randomString = cryptoRandomString({ length: 25 });
-      const host = "http://localhost:3000";
+      const host = process.env.FRONTEND_URL;
       const link = host + "/forgot-password?token=" + randomString;
       if (user) {
         await sendMail(
@@ -573,7 +580,7 @@ module.exports = function (sequelize) {
           password: hash,
         });
       } else {
-        sendError("Token is invalid", 403);
+        sendError("Token is invalid", 400);
       }
     },
   };

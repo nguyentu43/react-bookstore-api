@@ -1,2 +1,4 @@
 upload_tmp
 node_modules
+.env
+Procfile

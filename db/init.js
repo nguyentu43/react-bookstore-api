@@ -1,7 +1,10 @@
+require('dotenv').config();
 const faker = require("faker");
 const bcrypt = require("bcrypt");
 
-module.exports = async function (sequelize) {
+const sequelize = require('./index');
+
+const init = async function (sequelize) {
   const { User, Product, Author, Category } = sequelize.models;
 
   await sequelize.sync({ force: true });
@@ -15,7 +18,15 @@ module.exports = async function (sequelize) {
     isAdmin: true,
   });
 
+  const user = await User.create({
+    name: "User 1",
+    email: "abc@example.com",
+    password: hash,
+    isAdmin: false,
+  });
+
   await admin.createCart();
+  await user.createCart();
 
   for (let i = 0; i < 6; ++i) {
     await Author.create({ name: faker.name.lastName() });
@@ -77,4 +88,11 @@ module.exports = async function (sequelize) {
   await order2.addProduct(3, {
     through: { quantity: 10, discount: 0.3, price: 1 },
   });
+
+  console.log('Data has been created!');
+
+  process.exit(0);
 };
+
+
+init(sequelize);

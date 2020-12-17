@@ -1,6 +1,6 @@
 const { Sequelize } = require("sequelize");
-const sequelize = new Sequelize("postgres://postgres:123456@localhost:5432/bookstore", {
-    //logging: false
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+    logging: false
 });
 
 const models = [
@@ -19,6 +19,5 @@ for(const model of models){
 }
 
 require("./association")(sequelize);
-require("./init")(sequelize);
 
 module.exports = sequelize;

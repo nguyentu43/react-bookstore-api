@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const app = express();
 const { graphqlHTTP } = require("express-graphql");
@@ -12,7 +13,7 @@ const schema = require("./graphql/schema");
 const verifyJwt = require("./utils/verify-jwt");
 const { applyMiddleware } = require("graphql-middleware");
 const permissions = require("./graphql/shield");
-const { graphqlUploadExpress } = require('graphql-upload');
+const { graphqlUploadExpress } = require("graphql-upload");
 
 app.use(cors());
 app.use(compression());
@@ -27,12 +28,9 @@ app.post(
   "/graphql",
   graphqlUploadExpress({ maxFileSize: 1024 * 1024 * 2, maxFiles: 5 }),
   graphqlHTTP({
-    //schema: applyMiddleware(schema, permissions),
-    schema,
+    schema: applyMiddleware(schema, permissions),
     rootValue: resolvers,
     customFormatErrorFn(err) {
-      console.log(err);
-
       if (!err.originalError) {
         return err;
       }
@@ -44,6 +42,8 @@ app.post(
   })
 );
 
-app.listen(80, function () {
-  console.log("Server run at 80");
+
+const port = process.env.PORT || 80;
+app.listen(port, function () {
+  console.log("Server run at " + port);
 });

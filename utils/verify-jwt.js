@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const sendError = require("./send-error");
 module.exports = function(sequelize){
     return async function(req, res, next){
         if(!req.headers['authorization']) return next();
@@ -9,12 +10,10 @@ module.exports = function(sequelize){
             const authData = jwt.verify(token, "privatekey");
             const user = await sequelize.models.User.findByPk(Number(authData.id));
             req.user = user;
+            next();
         }
         catch(e){
-            console.log("JWT token is invalid");
-        }
-        finally{
-            next();
+            res.status(401).json({message: 'A token is invalid'});
         }
     }
 }

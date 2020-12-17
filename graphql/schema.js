@@ -164,7 +164,7 @@ const schema = buildSchema(`
         addOrder(input: OrderData!, userID: ID): Order!
         updateOrder(id: ID!, input: OrderData!, userID: ID): Order!
         removeOrder(id: ID!): Boolean!
-        uploadImages(files: [Upload!]): [Image]
+        uploadImages(files: [Upload!], urls: String): [Image]
         removeImages(public_ids: [String!]): Boolean
         addWishlist(id: ID): Boolean
         removeWishlist(id: ID): Boolean
