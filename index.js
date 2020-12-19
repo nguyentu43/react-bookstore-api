@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const { graphqlHTTP } = require("express-graphql");
@@ -17,14 +17,12 @@ const { graphqlUploadExpress } = require("graphql-upload");
 
 app.use(cors());
 app.use(compression());
-app.use(helmet({contentSecurityPolicy: false}));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan("combined"));
 
 app.use(async function (req, res, next) {
   await verifyJwt(sequelize)(req, res, next);
 });
-
-app.use(express.static('public', { cacheControl: true }));
 
 app.post(
   "/graphql",
@@ -44,4 +42,7 @@ app.post(
   })
 );
 
-app.listen(process.env.PORT);
+const port = process.env.PORT || 80;
+app.listen(port, function () {
+  console.log("Server run at port " + port);
+});

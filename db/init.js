@@ -1,8 +1,8 @@
-require('dotenv').config();
+require("dotenv").config();
 const faker = require("faker");
 const bcrypt = require("bcrypt");
 
-const sequelize = require('./index');
+const sequelize = require("./index");
 
 const init = async function (sequelize) {
   const { User, Product, Author, Category } = sequelize.models;
@@ -82,17 +82,16 @@ const init = async function (sequelize) {
     name: "Customer 1",
     address: "HCM",
     status: "created",
-    phone: '1234568',
+    phone: "1234568",
     total: 7,
   });
   await order2.addProduct(3, {
     through: { quantity: 10, discount: 0.3, price: 1 },
   });
 
-  console.log('Data has been created!');
+  console.log("Data has been created!");
 
   process.exit(0);
 };
-
 
 init(sequelize);

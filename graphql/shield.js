@@ -30,8 +30,9 @@ const permissions = shield(
       requestResetPassword: allow,
       register: allow,
     },
-  }, {
-    allowExternalErrors: true
+  },
+  {
+    allowExternalErrors: true,
   }
 );
 

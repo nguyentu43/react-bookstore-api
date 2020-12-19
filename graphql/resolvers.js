@@ -118,8 +118,10 @@ module.exports = function (sequelize) {
         uploadPromises.push(handleUpload(file.createReadStream()));
       }
 
-      for(const url of urls.split('\n')){
-        uploadPromises.push(cloudinary.uploader.upload(url, { folder: "store" }));
+      for (const url of urls.split("\n")) {
+        uploadPromises.push(
+          cloudinary.uploader.upload(url, { folder: "store" })
+        );
       }
 
       try {
@@ -129,7 +131,6 @@ module.exports = function (sequelize) {
           secure_url,
         }));
       } catch (error) {
-        console.log(error);
         sendError("Upload Error", 400);
       }
     },
@@ -179,8 +180,8 @@ module.exports = function (sequelize) {
       const hash = await bcrypt.hash(input.password, 10);
       input.password = hash;
 
-      if(await User.findOne({where: {email: input.email}})){
-        sendError('A email is already registered', 400);
+      if (await User.findOne({ where: { email: input.email } })) {
+        sendError("A email is already registered", 400);
         return;
       }
 
@@ -488,7 +489,10 @@ module.exports = function (sequelize) {
       });
     },
     async getOrders() {
-      const orders = await Order.findAll({ include: [Product, User], order: [['createdAt', 'desc']] });
+      const orders = await Order.findAll({
+        include: [Product, User],
+        order: [["createdAt", "desc"]],
+      });
       return orders.map((order) => orderToJSON(order));
     },
     async checkout({ input }, req) {
@@ -496,7 +500,7 @@ module.exports = function (sequelize) {
       userCart = await req.user.getCart();
       await userCart.setProducts([]);
       input.status = "charged";
-      return this.addOrder({userID, input});
+      return this.addOrder({ userID, input });
     },
     async addOrder({ userID, input }) {
       const order = await Order.create(input);
