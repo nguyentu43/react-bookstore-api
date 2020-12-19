@@ -17,12 +17,14 @@ const { graphqlUploadExpress } = require("graphql-upload");
 
 app.use(cors());
 app.use(compression());
-app.use(helmet());
+app.use(helmet({contentSecurityPolicy: false}));
 app.use(morgan("combined"));
 
 app.use(async function (req, res, next) {
   await verifyJwt(sequelize)(req, res, next);
 });
+
+app.use(express.static('public', { cacheControl: true }));
 
 app.post(
   "/graphql",

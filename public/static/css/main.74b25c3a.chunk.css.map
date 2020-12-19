@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack://src/css/index.css"],"names":[],"mappings":"AAAA,6BACI,cACJ,CAEA,YACI,UACJ,CAEA,YACI,WACJ","file":"main.74b25c3a.chunk.css","sourcesContent":[".slick-dots li button:before{\r\n    font-size: 12px;\r\n}\r\n\r\n.slick-prev{\r\n    left: -35px;\r\n}\r\n\r\n.slick-next{\r\n    right: -35px;\r\n}"]}
