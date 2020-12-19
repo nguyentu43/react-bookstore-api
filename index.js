@@ -44,8 +44,4 @@ app.post(
   })
 );
 
-
-const port = process.env.PORT || 80;
-app.listen(port, function () {
-  console.log("Server run at " + port);
-});
+app.listen(process.env.PORT);
