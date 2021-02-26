@@ -119,9 +119,11 @@ module.exports = function (sequelize) {
       }
 
       for (const url of urls.split("\n")) {
-        uploadPromises.push(
-          cloudinary.uploader.upload(url, { folder: "store" })
-        );
+        if(url.trim() != ""){
+          uploadPromises.push(
+            cloudinary.uploader.upload(url, { folder: "store" })
+          );
+        }
       }
 
       try {
