@@ -132,7 +132,7 @@ const schema = buildSchema(`
         getAuthors: [Author]!
         getProduct(slug: String!): Product
         getProducts(search: String, offset: Int, limit: Int): [Product]!
-        getPaymentCode(total: Float!, currency: String): String!
+        getPaymentCode(total: Int!, currency: String): String!
         getUserInfo: User!
         getUserCart: [ProductItem!]
         getUserOrders: [Order]!
