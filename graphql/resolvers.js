@@ -277,7 +277,7 @@ module.exports = function (sequelize) {
       let searchParam = "";
       const bindParams = [];
       let orderSQL = 'order by "Products"."createdAt" desc';
-      let whereSQL = "";
+      let whereSQL = ' 1=1 ';
 
       for (const param of params) {
         const sp = param.split("=");
@@ -305,7 +305,8 @@ module.exports = function (sequelize) {
             }
             break;
           case "keyword":
-            searchParam = sp[1];
+            searchParam = sp[1].split(' ').join(' & ');
+            whereSQL += ' and to_tsvector("Products".name) @@ to_tsquery(?)';
             break;
           case "category":
             whereSQL +=
@@ -330,13 +331,11 @@ module.exports = function (sequelize) {
         }
       }
 
-      searchParam = "%" + searchParam.toUpperCase() + "%";
-
       let sql = `select distinct "Products".* ${
         orderSQL.includes("group by")
           ? ', coalesce(sum("OrderItems".quantity), 0)'
           : ""
-      } from "Products" left join "Categories" on "Categories"."id" = "Products"."CategoryId"  join "AuthorProduct" on "AuthorProduct"."ProductId" = "Products".id left join "OrderItems" on "Products".id = "OrderItems"."ProductId" where upper("Products".name) like ? ${whereSQL} ${orderSQL}`;
+      } from "Products" left join "Categories" on "Categories"."id" = "Products"."CategoryId"  join "AuthorProduct" on "AuthorProduct"."ProductId" = "Products".id left join "OrderItems" on "Products".id = "OrderItems"."ProductId" where ${whereSQL} ${orderSQL}`;
 
       if (offset) {
         sql += " offset ?";
@@ -348,11 +347,19 @@ module.exports = function (sequelize) {
         bindParams.push(limit);
       }
 
+      const replacements = [...bindParams];
+      if(searchParam !== "")
+      {
+        replacements.unshift(searchParam);
+      }
+
+      console.log(replacements);
+
       const ps = await sequelize.query(sql, {
         model: Product,
         mapToModel: true,
         type: QueryTypes.SELECT,
-        replacements: [searchParam, ...bindParams],
+        replacements
       });
 
       return ps.map(async (p) => {

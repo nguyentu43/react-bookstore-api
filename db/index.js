@@ -20,4 +20,9 @@ for (const model of models) {
 
 require("./association")(sequelize);
 
+
+async function ind(){
+await sequelize.query(`CREATE INDEX product_name_fts ON "Products" USING GIN (to_tsvector('english', name));`);
+}
+ind();
 module.exports = sequelize;

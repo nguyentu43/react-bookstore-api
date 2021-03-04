@@ -9,6 +9,8 @@ const init = async function (sequelize) {
 
   await sequelize.sync({ force: true });
 
+  await sequelize.query(`CREATE INDEX product_name_fts ON "Products" USING GIN (to_tsvector('english', name));`);
+
   const hash = await bcrypt.hash("123456", 10);
 
   const admin = await User.create({
