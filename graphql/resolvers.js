@@ -305,6 +305,7 @@ module.exports = function (sequelize) {
             }
             break;
           case "keyword":
+            if(sp[1] === '') break;
             searchParam = sp[1].split(' ').join(' & ');
             whereSQL += ' and to_tsvector("Products".name) @@ to_tsquery(?)';
             break;
