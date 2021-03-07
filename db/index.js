@@ -21,4 +21,10 @@ for (const model of models) {
 
 require("./association")(sequelize);
 
+async function ind(){
+  await sequelize.models.Rating.sync({force: true});
+}
+
+ind();
+
 module.exports = sequelize;
