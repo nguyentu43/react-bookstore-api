@@ -641,13 +641,13 @@ module.exports = function (sequelize) {
       const salesYear = data.yearlyChart.find((item) => item[0] === year.toString());
       if(salesYear){
         const [bestSellerResult] = await sequelize.query(`
-          SELECT "Products".id, "Products".name, sum("total")
-          FROM "Orders" join "OrderItems" on "Orders".id = "OrderItems"."OrderId" 
-              join "Products" on "Products".id = "OrderItems"."ProductId"
-          WHERE "Orders".status = 'charged' and extract(year from "Orders"."createdAt") = ?
-          GROUP BY "Products".id, "Products".name
-          order by sum("total") desc
-          limit 10
+        SELECT "Products".id, "Products".name, sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount"))
+        FROM "Orders" join "OrderItems" on "Orders".id = "OrderItems"."OrderId" 
+            join "Products" on "Products".id = "OrderItems"."ProductId"
+        WHERE "Orders".status = 'charged' and extract(year from "Orders"."createdAt") = 2021
+        GROUP BY "Products".id, "Products".name
+        order by sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount")) desc
+        limit 10
         `, { replacements: [year] });
 
         let remaining = salesYear[1];
