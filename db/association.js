@@ -10,6 +10,7 @@ module.exports = async function (sequelize) {
     CartItem,
     Category,
     Author,
+    Rating
   } = sequelize.models;
 
   SequelizeSlugify.slugifyModel(Product, {
@@ -25,6 +26,11 @@ module.exports = async function (sequelize) {
 
   User.hasMany(Order);
   Order.belongsTo(User);
+
+  Product.hasMany(Rating);
+  Rating.belongsTo(Product);
+  User.hasMany(Rating);
+  Rating.belongsTo(User);
 
   Product.belongsToMany(User, { through: "Wishlist" });
   User.belongsToMany(Product, { through: "Wishlist" });

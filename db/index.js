@@ -12,6 +12,7 @@ const models = [
   require("./models/cart-item.model"),
   require("./models/order.model"),
   require("./models/order-item.model"),
+  require("./models/rating.model")
 ];
 
 for (const model of models) {
@@ -19,5 +20,11 @@ for (const model of models) {
 }
 
 require("./association")(sequelize);
+
+async function ind(){
+  await sequelize.models.Rating.sync({force: true});
+}
+
+ind();
 
 module.exports = sequelize;

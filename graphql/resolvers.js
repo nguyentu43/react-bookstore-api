@@ -16,7 +16,7 @@ const { isArray } = require("lodash");
 const { GraphQLUpload } = require("graphql-upload");
 
 module.exports = function (sequelize) {
-  const { User, Product, Order, Category, Author } = sequelize.models;
+  const { User, Product, Order, Category, Author, Rating } = sequelize.models;
 
   function cartToJSON(items) {
     return items.map((item) => ({
@@ -38,7 +38,12 @@ module.exports = function (sequelize) {
         secure_url: cloudinary.url(image, { secure: true }),
       })),
       authors: product.Authors.map((a) => a.toJSON()),
+      ratings: product.Ratings.map(async (r) => await ratingToJSON(r))
     };
+  }
+
+  async function ratingToJSON(rating){
+    return { ...rating.toJSON(), user: await rating.getUser()};
   }
 
   function orderToJSON(order) {
@@ -265,6 +270,7 @@ module.exports = function (sequelize) {
       const p = await Product.findOne({
         where: { slug },
         include: { all: true, nested: true },
+        order: [[Rating, 'createdAt', 'DESC']]
       });
       if (p) {
         return productToJSON(p);
@@ -529,7 +535,7 @@ module.exports = function (sequelize) {
       );
     },
     async updateOrder({ id, input, userID }) {
-      const order = await Order.findOne({ where: { id }, include: Product });
+      const order = await Order.findByPk(id, {include: Product });
       if (order) {
         await order.update(input);
         await order.setUser(userID);
@@ -549,12 +555,35 @@ module.exports = function (sequelize) {
       }
       sendError("Can't update this order", 403);
     },
-    async removeOrder({ id }, req) {
+    async removeOrder({ id }) {
       const numsOfDelete = await Order.destroy({ where: { id } });
       if (numsOfDelete > 0) {
         return true;
       }
       sendError("Can't delete this product", 403);
+    },
+    async addRating({input, productID, userID}){
+      const rating = await Rating.create({...input});
+      await rating.setUser(userID);
+      await rating.setProduct(productID);
+      return ratingToJSON(rating);
+    },
+    async updateRating({input, id}){
+      const rating = await Rating.findByPk(id);
+      if (rating) {
+        await rating.update(input);
+      }
+      else{
+        sendError("Can't update this order", 403);
+      }
+      return ratingToJSON(rating);
+    },
+    async removeRating({id}){
+      const numsOfDelete = await Rating.destroy({ where: { id } });
+      if (numsOfDelete > 0) {
+        return true;
+      }
+      sendError("Can't delete this rating", 403);
     },
     async getPaymentCode({ total: amount, currency = "usd" }, req) {
       const paymentIntent = await stripe.paymentIntents.create({
@@ -580,6 +609,61 @@ module.exports = function (sequelize) {
           resetTokenExpired: moment().add(2, "d"),
         });
       }
+    },
+    async getDashboardData({year = moment().year()}){
+      const data = {
+        productCount: await Product.count(),
+        orderCount: await Order.count(),
+        userCount: await Order.count(),
+        yearlyChart: [['Year', 'Sales']],
+        monthlyChart: [[ 'Month', 'Sales' ]],
+        bestSellerChart: [['Name', 'Sales']]
+      };
+
+      const [yearlyResult] = await sequelize.query(`
+        SELECT extract(year from "createdAt") as year, sum("total")
+        FROM "Orders"
+        WHERE "Orders".status = 'charged'
+        group by extract(year from "createdAt")
+      `);
+      for(const {year, sum} of yearlyResult){
+        data.yearlyChart.push([ year.toString(), sum ]);
+      }
+
+      const [monthlyResult] = await sequelize.query(`
+        SELECT extract(month from "createdAt") as month, sum("total")
+        FROM "Orders"
+        WHERE "Orders".status = 'charged' and extract(year from "createdAt") = ?
+        group by extract(month from "createdAt")
+      `, { replacements: [year] });
+      for(const {month, sum} of monthlyResult){
+        data.monthlyChart.push([ month.toString(), sum ]);
+      }
+
+      const salesYear = data.yearlyChart.find((item) => item[0] === year.toString());
+      if(salesYear){
+        const [bestSellerResult] = await sequelize.query(`
+          SELECT "Products".id, "Products".name, sum("total")
+          FROM "Orders" join "OrderItems" on "Orders".id = "OrderItems"."OrderId" 
+              join "Products" on "Products".id = "OrderItems"."ProductId"
+          WHERE "Orders".status = 'charged' and extract(year from "Orders"."createdAt") = ?
+          GROUP BY "Products".id, "Products".name
+          order by sum("total") desc
+          limit 10
+        `, { replacements: [year] });
+
+        let remaining = salesYear[1];
+        for(const {name, sum} of bestSellerResult){
+          remaining -= sum;
+          data.bestSellerChart.push([ name, sum ]);
+        }
+
+        data.bestSellerChart.push(['Remaining', remaining]);
+      }
+
+      console.log(data.bestSellerChart);
+
+      return JSON.stringify(data);
     },
     async verifyTokenAndResetPassword({ token, password }) {
       const user = await User.findOne({
