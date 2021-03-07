@@ -25,6 +25,16 @@ const schema = buildSchema(`
         parent: Category
     }
 
+    type Rating{
+        id: ID!
+        title: String!
+        comment: String!
+        user: User!
+        rate: Int!
+        createdAt: String!
+        updatedAt: String!
+    }
+
     type Product {
         id: ID!
         name: String!
@@ -34,6 +44,7 @@ const schema = buildSchema(`
         slug: String!
         images: [Image]
         authors: [Author]
+        ratings: [Rating]
         category: Category
         createdAt: String!
         updatedAt: String!
@@ -125,6 +136,12 @@ const schema = buildSchema(`
         icon: String
     }
 
+    input RatingData{
+        title: String
+        comment: String
+        rate: Int
+    }
+
     type Query {
         login(email: String!, password: String!): String!
         getImages(cursor: String): ImageList
@@ -139,7 +156,7 @@ const schema = buildSchema(`
         getWishlist: [Product]
         getOrders: [Order]!
         getUsers: [User]!
-        getDashboardData: String!
+        getDashboardData(year: Int): String!
     }
 
     type Mutation{
@@ -168,6 +185,9 @@ const schema = buildSchema(`
         removeImages(public_ids: [String!]): Boolean
         addWishlist(id: ID): Boolean
         removeWishlist(id: ID): Boolean
+        addRating(input: RatingData, userID: ID!, productID: ID!): Rating
+        updateRating(input: RatingData, userID: ID!, id: ID!): Rating
+        removeRating(id: ID!): Boolean
     }
 `);
 
