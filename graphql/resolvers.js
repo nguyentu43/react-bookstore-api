@@ -644,7 +644,7 @@ module.exports = function (sequelize) {
         SELECT "Products".id, "Products".name, sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount"))
         FROM "Orders" join "OrderItems" on "Orders".id = "OrderItems"."OrderId" 
             join "Products" on "Products".id = "OrderItems"."ProductId"
-        WHERE "Orders".status = 'charged' and extract(year from "Orders"."createdAt") = 2021
+        WHERE "Orders".status = 'charged' and extract(year from "Orders"."createdAt") = ?
         GROUP BY "Products".id, "Products".name
         order by sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount")) desc
         limit 10
@@ -658,7 +658,7 @@ module.exports = function (sequelize) {
 
         data.bestSellerChart.push(['Remaining', remaining]);
       }
-      
+
       return JSON.stringify(data);
     },
     async verifyTokenAndResetPassword({ token, password }) {
