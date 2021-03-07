@@ -658,12 +658,7 @@ module.exports = function (sequelize) {
 
         data.bestSellerChart.push(['Remaining', remaining]);
       }
-
-<<<<<<< HEAD
-=======
-      console.log(data.bestSellerChart);
-
->>>>>>> b8ed6bf51819ec2b1be13a8775c7bb62fdd28bf4
+      
       return JSON.stringify(data);
     },
     async verifyTokenAndResetPassword({ token, password }) {
