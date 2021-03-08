@@ -29,7 +29,7 @@ module.exports = async function (sequelize) {
 
   Product.hasMany(Rating);
   Rating.belongsTo(Product);
-  User.hasMany(Rating);
+  User.hasOne(Rating);
   Rating.belongsTo(User);
 
   Product.belongsToMany(User, { through: "Wishlist" });
