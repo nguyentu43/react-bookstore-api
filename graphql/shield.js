@@ -10,15 +10,15 @@ const isAdmin = rule()(async (parent, args, ctx, info) => {
 
 const isOwner = rule()(async (parent, args, ctx, info) => {
   const path = info.path.key;
-  const id = args.id;
+  const id = Number(args.id);
   if(path === 'updateOrder'){
     const orders = await ctx.user.getOrders();
-    return orders.some(order => order.UserId === ctx.user.id);
+    return orders.some(order => order.id === id && order.UserId === ctx.user.id);
   }
   
   if(path === 'updateRating'){
-    const ratings = await ctx.user.getRatings();
-    return ratings.some(rating => rating.UserId === ctx.user.id);
+    const rating = await ctx.user.getRating();
+    return rating !== null;
   }
   return false;
 });
