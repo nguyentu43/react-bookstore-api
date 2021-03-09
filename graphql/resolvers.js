@@ -22,7 +22,10 @@ module.exports = function (sequelize) {
     return items.map((item) => ({
       ...item.toJSON(),
       images: item.images.map((public_id) => ({
-        secure_url: cloudinary.url(public_id, { secure: true }),
+        secure_url: cloudinary.url(public_id, {
+          secure: true,
+          quality: "auto:good",
+        }),
         public_id,
       })),
       quantity: item.CartItem.quantity,
@@ -35,15 +38,18 @@ module.exports = function (sequelize) {
       category: product.Category.toJSON(),
       images: product.images.map((image) => ({
         public_id: image,
-        secure_url: cloudinary.url(image, { secure: true }),
+        secure_url: cloudinary.url(image, {
+          secure: true,
+          quality: "auto:good",
+        }),
       })),
       authors: product.Authors.map((a) => a.toJSON()),
-      ratings: product.Ratings.map(async (r) => await ratingToJSON(r))
+      ratings: product.Ratings.map(async (r) => await ratingToJSON(r)),
     };
   }
 
-  async function ratingToJSON(rating){
-    return { ...rating.toJSON(), user: await rating.getUser()};
+  async function ratingToJSON(rating) {
+    return { ...rating.toJSON(), user: await rating.getUser() };
   }
 
   function orderToJSON(order) {
@@ -66,7 +72,10 @@ module.exports = function (sequelize) {
           discount,
           images: images.map((public_id) => ({
             public_id,
-            secure_url: cloudinary.url(public_id, { secure: true }),
+            secure_url: cloudinary.url(public_id, {
+              secure: true,
+              quality: "auto:good",
+            }),
           })),
         })
       ),
@@ -124,7 +133,7 @@ module.exports = function (sequelize) {
       }
 
       for (const url of urls.split("\n")) {
-        if(url.trim() != ""){
+        if (url.trim() != "") {
           uploadPromises.push(
             cloudinary.uploader.upload(url, { folder: "store" })
           );
@@ -242,7 +251,10 @@ module.exports = function (sequelize) {
       const authors = await Author.findAll({ order: [["createdAt", "desc"]] });
       return authors.map(async (author) => ({
         ...author.toJSON(),
-        avatar: cloudinary.url(author.avatar, { secure: true }),
+        avatar: cloudinary.url(author.avatar, {
+          secure: true,
+          quality: "auto:eco",
+        }),
         books: await author.countProducts(),
       }));
     },
@@ -270,7 +282,7 @@ module.exports = function (sequelize) {
       const p = await Product.findOne({
         where: { slug },
         include: { all: true, nested: true },
-        order: [[Rating, 'createdAt', 'DESC']]
+        order: [[Rating, "createdAt", "DESC"]],
       });
       if (p) {
         return productToJSON(p);
@@ -283,7 +295,7 @@ module.exports = function (sequelize) {
       let searchParam = "";
       const bindParams = [];
       let orderSQL = 'order by "Products"."createdAt" desc';
-      let whereSQL = ' 1=1 ';
+      let whereSQL = " 1=1 ";
 
       for (const param of params) {
         const sp = param.split("=");
@@ -311,8 +323,8 @@ module.exports = function (sequelize) {
             }
             break;
           case "keyword":
-            if(sp[1] === '') break;
-            searchParam = sp[1].split(' ').join(' & ');
+            if (sp[1] === "") break;
+            searchParam = sp[1].split(" ").join(" & ");
             whereSQL += ' and to_tsvector("Products".name) @@ to_tsquery(?)';
             break;
           case "category":
@@ -355,8 +367,7 @@ module.exports = function (sequelize) {
       }
 
       const replacements = [...bindParams];
-      if(searchParam !== "")
-      {
+      if (searchParam !== "") {
         replacements.unshift(searchParam);
       }
 
@@ -364,7 +375,7 @@ module.exports = function (sequelize) {
         model: Product,
         mapToModel: true,
         type: QueryTypes.SELECT,
-        replacements
+        replacements,
       });
 
       return ps.map(async (p) => {
@@ -533,7 +544,7 @@ module.exports = function (sequelize) {
       );
     },
     async updateOrder({ id, input, userID }) {
-      const order = await Order.findByPk(id, {include: Product });
+      const order = await Order.findByPk(id, { include: Product });
       if (order) {
         await order.update(input);
         await order.setUser(userID);
@@ -560,23 +571,22 @@ module.exports = function (sequelize) {
       }
       sendError("Can't delete this product", 403);
     },
-    async addRating({input, productID, userID}){
-      const rating = await Rating.create({...input});
+    async addRating({ input, productID, userID }) {
+      const rating = await Rating.create({ ...input });
       await rating.setUser(userID);
       await rating.setProduct(productID);
       return ratingToJSON(rating);
     },
-    async updateRating({input, id}){
+    async updateRating({ input, id }) {
       const rating = await Rating.findByPk(id);
       if (rating) {
         await rating.update(input);
-      }
-      else{
+      } else {
         sendError("Can't update this order", 403);
       }
       return ratingToJSON(rating);
     },
-    async removeRating({id}){
+    async removeRating({ id }) {
       const numsOfDelete = await Rating.destroy({ where: { id } });
       if (numsOfDelete > 0) {
         return true;
@@ -608,14 +618,14 @@ module.exports = function (sequelize) {
         });
       }
     },
-    async getDashboardData({year = moment().year()}){
+    async getDashboardData({ year = moment().year() }) {
       const data = {
         productCount: await Product.count(),
         orderCount: await Order.count(),
         userCount: await Order.count(),
-        yearlyChart: [['Year', 'Sales']],
-        monthlyChart: [[ 'Month', 'Sales' ]],
-        bestSellerChart: [['Name', 'Sales']]
+        yearlyChart: [["Year", "Sales"]],
+        monthlyChart: [["Month", "Sales"]],
+        bestSellerChart: [["Name", "Sales"]],
       };
 
       const [yearlyResult] = await sequelize.query(`
@@ -624,23 +634,29 @@ module.exports = function (sequelize) {
         WHERE "Orders".status = 'charged'
         group by extract(year from "createdAt")
       `);
-      for(const {year, sum} of yearlyResult){
-        data.yearlyChart.push([ year.toString(), sum ]);
+      for (const { year, sum } of yearlyResult) {
+        data.yearlyChart.push([year.toString(), sum]);
       }
 
-      const [monthlyResult] = await sequelize.query(`
+      const [monthlyResult] = await sequelize.query(
+        `
         SELECT extract(month from "createdAt") as month, sum("total")
         FROM "Orders"
         WHERE "Orders".status = 'charged' and extract(year from "createdAt") = ?
         group by extract(month from "createdAt")
-      `, { replacements: [year] });
-      for(const {month, sum} of monthlyResult){
-        data.monthlyChart.push([ month.toString(), sum ]);
+      `,
+        { replacements: [year] }
+      );
+      for (const { month, sum } of monthlyResult) {
+        data.monthlyChart.push([month.toString(), sum]);
       }
 
-      const salesYear = data.yearlyChart.find((item) => item[0] === year.toString());
-      if(salesYear){
-        const [bestSellerResult] = await sequelize.query(`
+      const salesYear = data.yearlyChart.find(
+        (item) => item[0] === year.toString()
+      );
+      if (salesYear) {
+        const [bestSellerResult] = await sequelize.query(
+          `
         SELECT "Products".id, "Products".name, sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount"))
         FROM "Orders" join "OrderItems" on "Orders".id = "OrderItems"."OrderId" 
             join "Products" on "Products".id = "OrderItems"."ProductId"
@@ -648,15 +664,17 @@ module.exports = function (sequelize) {
         GROUP BY "Products".id, "Products".name
         order by sum("OrderItems"."quantity" * "OrderItems"."price" * (1 - "OrderItems"."discount")) desc
         limit 10
-        `, { replacements: [year] });
+        `,
+          { replacements: [year] }
+        );
 
         let remaining = salesYear[1];
-        for(const {name, sum} of bestSellerResult){
+        for (const { name, sum } of bestSellerResult) {
           remaining -= sum;
-          data.bestSellerChart.push([ name, sum ]);
+          data.bestSellerChart.push([name, sum]);
         }
 
-        data.bestSellerChart.push(['Remaining', remaining]);
+        data.bestSellerChart.push(["Remaining", remaining]);
       }
 
       return JSON.stringify(data);
