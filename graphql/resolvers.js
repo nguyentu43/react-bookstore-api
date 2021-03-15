@@ -350,7 +350,7 @@ module.exports = function (sequelize) {
         }
       }
 
-      let sql = `select distinct "Products".* ${
+      let sql = `select distinct "Products".*, "Products".price * (1 - "Products".discount) ${
         orderSQL.includes("group by")
           ? ', coalesce(sum("OrderItems".quantity), 0)'
           : ""
