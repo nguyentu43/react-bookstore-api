@@ -202,7 +202,7 @@ module.exports = function (sequelize) {
       }
 
       const user = await User.create(input);
-      user.createCart();
+      await user.createCart();
 
       const token = jwt.sign(
         {
