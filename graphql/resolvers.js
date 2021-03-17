@@ -605,7 +605,7 @@ module.exports = function (sequelize) {
       const user = await User.findOne({ where: { email } });
       const randomString = cryptoRandomString({ length: 25 });
       const host = process.env.FRONTEND_URL;
-      const link = host + "/forgot-password?token=" + randomString;
+      const link = host + "/store/forgot-password?token=" + randomString;
       if (user) {
         await sendMail(
           user.email,
