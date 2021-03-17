@@ -1,6 +1,8 @@
 const { Sequelize } = require("sequelize");
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   logging: false,
+  native: true,
+  dialect: "postgres",
 });
 
 const models = [
@@ -12,7 +14,7 @@ const models = [
   require("./models/cart-item.model"),
   require("./models/order.model"),
   require("./models/order-item.model"),
-  require("./models/rating.model")
+  require("./models/rating.model"),
 ];
 
 for (const model of models) {
