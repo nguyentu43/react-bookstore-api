@@ -11,12 +11,14 @@ const isAdmin = rule()(async (parent, args, ctx, info) => {
 const isOwner = rule()(async (parent, args, ctx, info) => {
   const path = info.path.key;
   const id = Number(args.id);
-  if(path === 'updateOrder'){
+  if (path === "updateOrder") {
     const orders = await ctx.user.getOrders();
-    return orders.some(order => order.id === id && order.UserId === ctx.user.id);
+    return orders.some(
+      (order) => order.id === id && order.UserId === ctx.user.id
+    );
   }
-  
-  if(path === 'updateRating'){
+
+  if (path === "updateRating") {
     const rating = await ctx.user.getRating();
     return rating !== null;
   }
@@ -38,6 +40,8 @@ const permissions = shield(
     },
     Mutation: {
       "*": and(isAuthenticated, isAdmin),
+      addCartItem: isAuthenticated,
+      removeCartItem: isAuthenticated,
       addWishlist: isAuthenticated,
       removeWishlist: isAuthenticated,
       updateOrder: and(isAuthenticated, or(isOwner, isAdmin)),
