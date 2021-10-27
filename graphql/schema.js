@@ -90,12 +90,19 @@ const schema = buildSchema(`
         name: String!
         email: String!
         password: String
+        isAdmin: Boolean
+    }
+
+    input RegisterData{
+        name: String!
+        email: String!
+        password: String!
     }
 
     input ProductData{
         name: String!
         price: Float!
-        discount: Float
+        discount: Float!
         description: String
         images: String
         authors: [ID]
@@ -148,6 +155,7 @@ const schema = buildSchema(`
         getCategories: [Category]!
         getAuthors: [Author]!
         getProduct(slug: String!): Product
+        getRecommendationProducts(offset:Int, limit:Int):[Product]!
         getProducts(search: String, offset: Int, limit: Int): [Product]!
         getPaymentCode(total: Int!, currency: String): String!
         getUserInfo: User!
@@ -160,7 +168,7 @@ const schema = buildSchema(`
     }
 
     type Mutation{
-        register(input: UserData): String!
+        register(input: RegisterData!): String!
         addUser(input: UserData!): User!
         updateUser(id: ID!, input: UserData!): User!
         removeUser(id: ID!): Boolean

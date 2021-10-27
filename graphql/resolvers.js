@@ -201,6 +201,7 @@ module.exports = function (sequelize) {
         return;
       }
 
+      input.isAdmin = false;
       const user = await User.create(input);
       await user.createCart();
 
@@ -382,6 +383,42 @@ module.exports = function (sequelize) {
         await p.reload({ include: [{ all: true, nested: true }] });
         return productToJSON(p);
       });
+    },
+    async getRecommendationProducts({offset, limit}, req){
+      const currentUser = req.user;
+
+      const sql = `
+      SELECT *
+      FROM
+        (SELECT Similars."id", MAX(Ranks."Rank") AS "Rank"
+              FROM
+                (SELECT "Products".*, "UserId" FROM "Orders" JOIN "OrderItems" ON "Orders"."id" = "OrderItems"."OrderId" JOIN "Products" ON "Products"."id" = "OrderItems"."ProductId") Similars
+                JOIN
+                (SELECT SimilarOrderItems."UserId", COUNT(*) AS "Rank"
+                FROM 
+                  (SELECT * FROM "Orders" JOIN "OrderItems" ON "Orders"."id" = "OrderItems"."OrderId") TargetOrderItems
+                  JOIN (SELECT * FROM "Orders" JOIN "OrderItems" ON "Orders"."id" = "OrderItems"."OrderId") SimilarOrderItems
+                  ON TargetOrderItems."ProductId" = SimilarOrderItems."ProductId" AND TargetOrderItems."UserId" != SimilarOrderItems."UserId"
+                WHERE TargetOrderItems."UserId" = :userId
+                GROUP BY SimilarOrderItems."UserId") Ranks ON Similars."UserId" = Ranks."UserId"
+              WHERE NOT EXISTS (SELECT * FROM "Orders" JOIN "OrderItems" ON "Orders"."id" = "OrderItems"."OrderId" AND "Orders"."UserId" = :userId AND "OrderItems"."ProductId" = Similars."id")
+              GROUP BY Similars."id") AS "Result"
+        JOIN "Products" ON "Products"."id" = "Result"."id"
+        ORDER BY "Result"."Rank" DESC
+        OFFSET :offset LIMIT :limit`
+
+      const ps = await sequelize.query(sql, {
+        model: Product,
+        mapToModel: true,
+        type: QueryTypes.SELECT,
+        replacements: { userId:currentUser.id, offset, limit },
+      });
+
+      return ps.map(async (p) => {
+        await p.reload({ include: [{ all: true, nested: true }] });
+        return productToJSON(p);
+      });
+
     },
     async addProduct({ input }) {
       const product = await Product.create(input);

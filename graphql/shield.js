@@ -37,6 +37,7 @@ const permissions = shield(
       getOrders: and(isAuthenticated, isAdmin),
       getUsers: and(isAuthenticated, isAdmin),
       getDashboardData: and(isAuthenticated, isAdmin),
+      getRecommendationProducts: isAuthenticated
     },
     Mutation: {
       "*": and(isAuthenticated, isAdmin),
