@@ -15,6 +15,7 @@ module.exports = async function (sequelize) {
 
   SequelizeSlugify.slugifyModel(Product, {
     source: ["name"],
+    bulkUpdate: true
   });
 
   Category.belongsTo(Category, { as: "parent", foreignKey: "parentID" });

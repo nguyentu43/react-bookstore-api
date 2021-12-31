@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 
 module.exports = async function (sequelize) {
-  const User = sequelize.define("User", {
+  sequelize.define("User", {
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -23,7 +23,7 @@ module.exports = async function (sequelize) {
     },
     password: {
       type: DataTypes.STRING(65),
-      allowNull: false,
+      allowNull: true,
     },
     resetToken: {
       type: DataTypes.STRING(255),
@@ -33,5 +33,9 @@ module.exports = async function (sequelize) {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    provider: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    }
   });
 };

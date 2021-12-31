@@ -82,6 +82,18 @@ module.exports = function (sequelize) {
     };
   }
 
+  function generateJwt(user){
+    return jwt.sign(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      "privatekey",
+      { expiresIn: "1d" }
+    );
+  }
+
   return {
     Upload: GraphQLUpload,
     async getImages({ cursor: next_cursor }) {
@@ -168,19 +180,33 @@ module.exports = function (sequelize) {
       if (user) {
         const valid = await bcrypt.compare(password, user.password);
         if (valid) {
-          const token = jwt.sign(
-            {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-            },
-            "privatekey",
-            { expiresIn: "1d" }
-          );
-          return token;
+          return generateJwt(user);
         }
       }
-      sendError("A email/password is invalid", 400);
+      sendError("Email/Password is invalid", 400);
+    },
+    async loginWithProvider({ email, name }){
+      const user = await User.findOne({where:{email}});
+      if(user){
+        if(user.provider){
+          return generateJwt(user);
+        }
+        
+        if(user.password){
+          sendError("Email has register", 404);
+        }
+      }
+
+      const newUser = await User.create({
+        name,
+        email,
+        provider: true
+      });
+
+      await newUser.createCart();
+
+      return generateJwt(newUser);
+
     },
     async register({ input }) {
       if (
@@ -414,10 +440,16 @@ module.exports = function (sequelize) {
         replacements: { userId:currentUser.id, offset, limit },
       });
 
-      return ps.map(async (p) => {
-        await p.reload({ include: [{ all: true, nested: true }] });
-        return productToJSON(p);
-      });
+      if(ps.length > 0){
+
+        return ps.map(async (p) => {
+          await p.reload({ include: [{ all: true, nested: true }] });
+          return productToJSON(p);
+        });
+
+      }
+        
+      return await this.getProducts({ limit, offset });
 
     },
     async addProduct({ input }) {
@@ -460,7 +492,7 @@ module.exports = function (sequelize) {
       }
 
       const user = await User.create(input);
-      user.createCart();
+      await user.createCart();
       return user.toJSON();
     },
     async updateUser({ id, input }) {

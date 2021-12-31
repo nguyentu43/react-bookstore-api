@@ -41,11 +41,12 @@ const init = async function (sequelize) {
   await Category.create({ name: faker.company.companyName(), parentID: 1 });
 
   for (let i = 0; i < 2; ++i) {
-    await User.create({
+    const user = await User.create({
       name: faker.name.findName(),
       email: faker.internet.email(),
       password: hash,
     });
+    await user.createCart();
   }
 
   for (let i = 0; i < 20; ++i) {

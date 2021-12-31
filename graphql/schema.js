@@ -151,6 +151,7 @@ const schema = buildSchema(`
 
     type Query {
         login(email: String!, password: String!): String!
+        loginWithProvider(email: String!, name:String!): String!
         getImages(cursor: String): ImageList
         getCategories: [Category]!
         getAuthors: [Author]!

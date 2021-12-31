@@ -8,9 +8,10 @@ const isAdmin = rule()(async (parent, args, ctx, info) => {
   return ctx.user.isAdmin;
 });
 
-const isOwner = rule()(async (parent, args, ctx, info) => {
+const isOwner = rule()(async (_, args, ctx, info) => {
   const path = info.path.key;
   const id = Number(args.id);
+
   if (path === "updateOrder") {
     const orders = await ctx.user.getOrders();
     return orders.some(
@@ -18,7 +19,7 @@ const isOwner = rule()(async (parent, args, ctx, info) => {
     );
   }
 
-  if (path === "updateRating") {
+  if (path === "updateRating" || path === "removeRating") {
     const rating = await ctx.user.getRating();
     return rating !== null;
   }
@@ -46,6 +47,7 @@ const permissions = shield(
       addWishlist: isAuthenticated,
       removeWishlist: isAuthenticated,
       updateOrder: and(isAuthenticated, or(isOwner, isAdmin)),
+      addRating: isAuthenticated,
       updateRating: and(isAuthenticated, isOwner),
       removeRating: and(isAuthenticated, or(isOwner, isAdmin)),
       checkout: isAuthenticated,
