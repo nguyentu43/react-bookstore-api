@@ -429,7 +429,7 @@ module.exports = function (sequelize) {
                 GROUP BY SimilarOrderItems."UserId") Ranks ON Similars."UserId" = Ranks."UserId"
               WHERE NOT EXISTS (SELECT * FROM "Orders" JOIN "OrderItems" ON "Orders"."id" = "OrderItems"."OrderId" AND "Orders"."UserId" = :userId AND "OrderItems"."ProductId" = Similars."id")
               GROUP BY Similars."id") AS "Result"
-        JOIN "Products" ON "Products"."id" = "Result"."id"
+        RIGHT JOIN "Products" ON "Products"."id" = "Result"."id"
         ORDER BY "Result"."Rank" DESC
         OFFSET :offset LIMIT :limit`
 
