@@ -255,6 +255,10 @@ module.exports = function (sequelize) {
       return category.toJSON();
     },
     async updateCategory({ id, input }) {
+      if(input.parent_id === id){
+        sendError("Parent category is not itself", 404);
+        return;
+      }
       const result = await Category.update({ ...input }, { where: { id } });
       if (result) {
         return (
