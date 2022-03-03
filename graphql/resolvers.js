@@ -259,6 +259,7 @@ module.exports = function (sequelize) {
         sendError("Parent category is not itself", 404);
         return;
       }
+      console.log(input);
       if(input.parentID === 0){
         input.parentID = null;
       }
