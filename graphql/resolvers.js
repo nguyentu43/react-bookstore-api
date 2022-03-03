@@ -259,8 +259,7 @@ module.exports = function (sequelize) {
         sendError("Parent category is not itself", 404);
         return;
       }
-      console.log(input);
-      if(input.parentID === 0){
+      if(input.parentID === '0'){
         input.parentID = null;
       }
       const result = await Category.update({ ...input }, { where: { id } });
