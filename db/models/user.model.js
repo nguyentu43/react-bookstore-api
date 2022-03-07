@@ -25,14 +25,6 @@ module.exports = async function (sequelize) {
       type: DataTypes.STRING(65),
       allowNull: true,
     },
-    resetToken: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
-    resetTokenExpired: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
     provider: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,

@@ -750,6 +750,7 @@ module.exports = function (sequelize) {
           data.bestSellerChart.push([name, sum]);
         }
 
+        remaining = remaining < 0 ? 0 : remaining;
         data.bestSellerChart.push(["Remaining", remaining]);
       }
 

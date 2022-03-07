@@ -7,6 +7,7 @@ const schema = buildSchema(`
         name: String!
         email: String!
         isAdmin: Boolean!
+        createdAt: String
     }
 
     type Author{
