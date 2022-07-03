@@ -198,6 +198,7 @@ const schema = buildSchema(`
         addRating(input: RatingData, userID: ID!, productID: ID!): Rating
         updateRating(input: RatingData, userID: ID!, id: ID!): Rating
         removeRating(id: ID!): Boolean
+        refundStripe(paymentID: String!): Boolean
     }
 `);
 

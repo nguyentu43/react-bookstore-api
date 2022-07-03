@@ -599,25 +599,40 @@ module.exports = function (sequelize) {
     async checkout({ input }, req) {
       const userID = req.user.id;
       userCart = await req.user.getCart();
-      await userCart.setProducts([]);
-      input.status = "charged";
-      return this.addOrder({ userID, input });
-    },
-    async addOrder({ userID, input }) {
-      const order = await Order.create(input);
-      if (userID) await order.setUser(Number(userID));
-      for (const item of input.items) {
-        await order.addProduct(item.id, {
-          through: {
-            quantity: item.quantity,
-            price: item.price,
-            discount: item.discount,
-          },
+      try{
+        return await sequelize.transaction(async t => {
+          await userCart.setProducts([], {transaction: t});
+          input.status = "charged";
+          return await this.addOrder({ userID, input });
         });
       }
-      return orderToJSON(
-        await order.reload({ include: [{ all: true, nested: true }] })
-      );
+      catch(_){
+        sendError("Checkout error", 403);
+      }
+    },
+    async addOrder({ userID, input }) {
+      try{
+        return await sequelize.transaction(async t => {
+          const order = await Order.create(input, {transaction: t});
+          if (userID) await order.setUser(Number(userID), {transaction: t});
+          for (const item of input.items) {
+            await order.addProduct(item.id, {
+              through: {
+                quantity: item.quantity,
+                price: item.price,
+                discount: item.discount,
+              },
+              transaction: t
+            });
+          }
+          return orderToJSON(
+            await order.reload({ include: [{ all: true, nested: true }], transaction: t })
+          );
+        });
+      }
+      catch(_){
+        sendError("Add order error", 403);
+      }
     },
     async updateOrder({ id, input, userID }) {
       const order = await Order.findByPk(id, { include: Product });
@@ -676,6 +691,19 @@ module.exports = function (sequelize) {
         payment_method_types: ["card"],
       });
       return paymentIntent.client_secret;
+    },
+    async refundStripe({ paymentID }){
+      const order = await Order.findOne({where: {paymentID}});
+      if(order){
+        sendError("Refund error", 403);
+        return;
+      }
+      const refund = await stripe.refunds.create({
+        payment_intent: paymentID
+      });
+      if(refund.status !== "succeeded"){
+        sendError("Refund error", 403);
+      }
     },
     async requestResetPassword({ email }) {
       const user = await User.findOne({ where: { email } });
