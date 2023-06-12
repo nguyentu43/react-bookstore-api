@@ -11,11 +11,11 @@ const init = async function (sequelize) {
 
   await sequelize.query(`CREATE INDEX product_name_fts ON "Products" USING GIN (to_tsvector('english', name));`);
 
-  const hash = await bcrypt.hash("123456", 10);
+  const hash = await bcrypt.hash("12345678", 10);
 
   const admin = await User.create({
     name: "Admin",
-    email: "ngoctu.tu1@gmail.com",
+    email: "admin@example.com",
     password: hash,
     isAdmin: true,
   });
